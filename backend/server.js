@@ -23,6 +23,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'YelloRide API Server' });
 });
 
+// 사용 가능한 지역 목록 조회
+app.get('/api/regions', async (req, res) => {
+  try {
+    // taxi_items 컬렉션에서 고유한 지역 목록을 조회
+    const regions = await TaxiItem.distinct('region');
+    
+    // 지역 목록을 정렬하여 반환
+    res.json(regions.sort());
+  } catch (error) {
+    console.error('Error fetching regions:', error);
+    res.status(500).json({ message: '지역 목록을 가져오는 중 오류가 발생했습니다.' });
+  }
+});
+
 // 지역별 출발지 목록 조회
 app.get('/api/routes/:region/departures', async (req, res) => {
   try {

@@ -13,7 +13,7 @@ const bookingSchema = new mongoose.Schema({
   region: {
     type: String,
     required: true,
-    enum: ['LA', 'NY']
+    enum: ['LA', 'NY', 'NJ']
   },
   isRoundTrip: {
     type: Boolean,

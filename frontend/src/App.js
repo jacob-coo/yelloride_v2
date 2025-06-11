@@ -1,16 +1,11 @@
 /**
- * YelloRide - 미주 특화 택시예약 앱
- * 심플하고 깔끔한 토스 스타일 디자인
+ * YelloRide - 토스/쏘카 스타일 택시예약 앱
+ * 깔끔하고 직관적인 F형 레이아웃
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  MapPin, 
   Users, 
   Luggage, 
-  CreditCard, 
-  Calendar, 
-  Clock, 
-  Plane, 
   Phone, 
   MessageCircle,
   CheckCircle, 
@@ -22,14 +17,9 @@ import {
   Baby,
   AlertCircle
 } from 'lucide-react';
-import titleImage from './image/title.png';
+import HeroImageSlider from './components/HeroImageSlider';
 
-// Import landing page components
-import HeroSection from './components/HeroSection';
-import BrandingCard from './components/BrandingCard';
-import useScrollProgress from './hooks/useScrollProgress';
-
-const API_BASE_URL = 'http://localhost:5001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
 // API Service
 class APIService {
@@ -52,28 +42,32 @@ class APIService {
   }
 
   async getLocations(region) {
-    return this.request(`/api/routes/${region}`);
+    return this.request(`/routes/${region}`);
   }
 
   async getDepartures(region) {
-    return this.request(`/api/routes/${region}/departures`);
+    return this.request(`/routes/${region}/departures`);
   }
 
   async getArrivals(region, departure) {
     const params = new URLSearchParams({ departure });
-    return this.request(`/api/routes/${region}/arrivals?${params}`);
+    return this.request(`/routes/${region}/arrivals?${params}`);
   }
 
   async searchRoute(departure, arrival, region) {
     const params = new URLSearchParams({ departure, arrival, region });
-    return this.request(`/api/route?${params}`);
+    return this.request(`/route?${params}`);
   }
 
   async createBooking(bookingData) {
-    return this.request('/api/bookings', {
+    return this.request('/bookings', {
       method: 'POST',
       body: JSON.stringify(bookingData)
     });
+  }
+
+  async getRegions() {
+    return this.request('/regions');
   }
 }
 
@@ -85,8 +79,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // 스크롤 진행 상태 (랜딩 페이지용)
-  const { scrollProgress, heroProgress, brandingProgress } = useScrollProgress();
 
   // URL 파라미터 관리
   useEffect(() => {
@@ -100,6 +92,19 @@ function App() {
       setStep('landing');
     }
   }, []);
+
+  // 랜딩 페이지일 때만 body 클래스 추가
+  useEffect(() => {
+    if (step === 'landing') {
+      document.body.classList.add('landing-mode');
+    } else {
+      document.body.classList.remove('landing-mode');
+    }
+    
+    return () => {
+      document.body.classList.remove('landing-mode');
+    };
+  }, [step]);
 
   // 단계 변경 시 URL 업데이트 및 스크롤 최상단 이동
   const updateStep = (newStep) => {
@@ -260,8 +265,8 @@ function App() {
       setDepartures(departureList);
     } catch (err) {
       console.error('Failed to load departures:', err);
-      // 더미 데이터로 대체
-      setDepartures(['JFK 공항', 'LGA 공항', 'EWR 공항', '맨하튼', '브루클린']);
+      setError('출발지 목록을 불러오는데 실패했습니다.');
+      setDepartures([]);
     } finally {
       setLoading(false);
     }
@@ -275,9 +280,8 @@ function App() {
       return arrivalList;
     } catch (err) {
       console.error('Failed to load arrivals:', err);
-      // 더미 데이터로 대체
-      const dummyArrivals = ['맨하탄', '브루클린', '퀸즈', '브롱스', '스태튼 아일랜드'];
-      return dummyArrivals;
+      setError('도착지 목록을 불러오는데 실패했습니다.');
+      return [];
     } finally {
       setLoading(false);
     }
@@ -294,15 +298,20 @@ function App() {
     }
   };
 
-  // 공통 상단 네비게이션
+  // 새로운 디자인 네비게이션
   const TopNav = ({ title, onBack, showBack = true }) => (
-    <div className="top-nav">
-      {showBack && onBack && (
-        <button className="nav-back-btn" onClick={onBack}>
-          <ArrowLeft size={20} />
-        </button>
-      )}
-      <div className="nav-title">{title}</div>
+    <div className="nav-container">
+      <div className="nav-content">
+        {showBack && onBack ? (
+          <button className="nav-back" onClick={onBack}>
+            <ArrowLeft size={20} />
+          </button>
+        ) : (
+          <div className="nav-action"></div>
+        )}
+        <h1 className="nav-title">{title}</h1>
+        <div className="nav-action"></div>
+      </div>
     </div>
   );
 
@@ -344,229 +353,103 @@ function App() {
     }
   };
 
-  // 명품 브랜드 스타일 랜딩 페이지
+  // 새로운 디자인 랜딩 페이지
   const LandingPage = () => {
-    const [isTransitioning, setIsTransitioning] = useState(false);
-
     if (step !== 'landing') return null;
 
-    const handleStartBooking = async () => {
-      setIsTransitioning(true);
-      setBooking(prev => ({ ...prev, region: 'NY' }));
-      await loadDepartures('NY');
-      setTimeout(() => {
-        updateStep('region');
-      }, 800);
+    const handleStartBooking = () => {
+      updateStep('region');
     };
 
-    return (
-      <div className="step-container">
-        <div 
-          className="luxury-hero-fixed"
-          style={{
-            backgroundImage: `linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), url(${titleImage})`,
-          }}
-        >
-          <div className="step-content-top">
-            {/* 명품 브랜드 로고 텍스트 */}
-            <div className="luxury-brand">
-              <h1 className="luxury-logo-text">YelloRide</h1>
-            </div>
-            
-            {/* 프리미엄 서비스 설명 */}
-            <div className="luxury-description">
-              <h2 className="luxury-title">
-                미국의 모든<br />
-                <span className="luxury-accent">프리미엄 카서비스</span>
-              </h2>
-              
-              <p className="luxury-subtitle">
-                JFK, LAX 등 주요 공항부터 시내 어디든<br />
-                안전하고 편안한 단독차량 서비스
-              </p>
-              
-              {/* 서비스 특징 */}
-              <div className="luxury-features">
-                <div className="luxury-feature-item">
-                  <span className="feature-emoji">✈️</span>
-                  <span>공항 실시간 픽업</span>
-                </div>
-                <div className="luxury-feature-item">
-                  <span className="feature-emoji">💬</span>
-                  <span>카톡 상담 가능</span>
-                </div>
-                <div className="luxury-feature-item">
-                  <span className="feature-emoji">🚗</span>
-                  <span>합승 없는 단독차량</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 고급스러운 예약 버튼 */}
-            <div className="luxury-cta-container">
-              <button className="luxury-booking-button" onClick={handleStartBooking}>
-                <span className="luxury-btn-text">예약하기</span>
-                <div className="luxury-btn-glow"></div>
-                <div className="luxury-btn-shimmer"></div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {isTransitioning && (
-          <div className="luxury-transition">
-            <div className="luxury-fade"></div>
-          </div>
-        )}
-      </div>
-    );
+    return <HeroImageSlider onBookingClick={handleStartBooking} />;
   };
 
-  // 그리드 기반 지역 선택 화면
+  // 새로운 디자인 지역 선택 화면
   const RegionStep = () => {
+    const [availableRegions, setAvailableRegions] = useState([]);
+    
+    useEffect(() => {
+      const loadRegions = async () => {
+        try {
+          const regions = await api.getRegions();
+          setAvailableRegions(regions);
+        } catch (err) {
+          console.error('Failed to load regions:', err);
+          setError('지역 목록을 불러오는데 실패했습니다.');
+        }
+      };
+      
+      if (step === 'region') {
+        loadRegions();
+      }
+    }, [step]);
+
     if (step !== 'region') return null;
 
     return (
-      <div className="step-container">
+      <div className="page-container">
         <TopNav 
           title="어디로 떠나시나요?" 
           onBack={() => updateStep('landing')}
         />
-        <div className="step-content-top">
-          {/* 타이틀 섹션 */}
-          <div className="page-header">
-            <h1 className="page-title">어디로 떠나시나요?</h1>
-            <p className="page-subtitle">미국 전역 안전한 단독차량 서비스</p>
-          </div>
+        
+        <div className="page-content">
+          <h1 className="heading-1">어디로 떠나시나요?</h1>
+          <p className="body-1">미국 전역 안전한 단독차량 서비스</p>
 
-          {/* 브랜드 특징 섹션 */}
-          <div className="brand-features-section">
-            <div className="brand-features-grid">
-              <div className="brand-feature-card">
-                <div className="feature-icon-large">✈️</div>
-                <div className="feature-content">
-                  <h3 className="feature-title">공항 실시간 픽업</h3>
-                  <p className="feature-desc">항공편 실시간 조회로 정확한 픽업</p>
-                </div>
-              </div>
-              <div className="brand-feature-card">
-                <div className="feature-icon-large">💬</div>
-                <div className="feature-content">
-                  <h3 className="feature-title">24시간 한국어 지원</h3>
-                  <p className="feature-desc">카카오톡으로 언제든 상담 가능</p>
-                </div>
-              </div>
-              <div className="brand-feature-card">
-                <div className="feature-icon-large">🚗</div>
-                <div className="feature-content">
-                  <h3 className="feature-title">단독차량 보장</h3>
-                  <p className="feature-desc">합승 없는 안전한 개인 서비스</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 예약하기 버튼 섹션 */}
-          <div className="booking-section">
-            <div className="booking-cta-header">
-              <h3 className="booking-cta-title">지금 바로 예약하기</h3>
-              <p className="booking-cta-subtitle">원하는 지역을 선택하고 택시를 예약하세요</p>
-            </div>
+          {/* 지역 선택 카드들 */}
+          <div className="flex flex-col gap-4">
+            {availableRegions.map((region) => {
+              const regionNames = { 'NY': '뉴욕', 'NJ': '뉴저지' };
+              const regionName = regionNames[region] || region;
+              const regionIcons = { 'NY': '🗽', 'NJ': '🌉' };
+              const regionIcon = regionIcons[region] || '🚗';
+              const airportInfo = {
+                'NY': 'JFK • LGA • EWR 공항',
+                'NJ': 'EWR • 뉴저지 전역'
+              };
+              const regionDesc = airportInfo[region] || '공항 및 시내 전역';
               
-              <div className="booking-cards-grid">
+              return (
                 <div 
-                  className="booking-card-premium"
+                  key={region}
+                  className="card"
+                  style={{ cursor: 'pointer' }}
                   onClick={async () => {
                     setLoading(true);
-                    setBooking(prev => ({ ...prev, region: 'NY' }));
-                    await loadDepartures('NY');
+                    setBooking(prev => ({ ...prev, region }));
+                    await loadDepartures(region);
                     updateStep('route');
                     setLoading(false);
                   }}
                 >
-                  <div className="booking-card-background">
-                    <div className="booking-card-shine"></div>
-                  </div>
-                  
-                  <div className="booking-card-content">
-                    <div className="booking-card-header">
-                      <div className="booking-region-icon">🗽</div>
-                      <div className="booking-badge">인기</div>
+                  <div className="flex items-center gap-4">
+                    <div style={{ fontSize: '32px' }}>{regionIcon}</div>
+                    <div className="flex-1">
+                      <h3 className="heading-3">{regionName} 택시 예약</h3>
+                      <p className="body-2">{regionDesc}</p>
                     </div>
-                    
-                    <div className="booking-card-main">
-                      <h3 className="booking-region-name">뉴욕 택시 예약</h3>
-                      <p className="booking-region-desc">JFK • LGA • EWR 공항</p>
-                      <div className="booking-features">
-                        <span className="booking-feature">✓ 실시간 픽업</span>
-                        <span className="booking-feature">✓ 한국어 지원</span>
-                      </div>
-                    </div>
-                    
-                    <div className="booking-card-action">
-                      <div className="booking-button">
-                        <span className="booking-button-text">뉴욕 예약하기</span>
-                        <ArrowRight size={18} className="booking-arrow" />
-                      </div>
-                    </div>
+                    <ArrowRight size={20} className="text-gray-400" />
                   </div>
                 </div>
-                
-                <div 
-                  className="booking-card-premium"
-                  onClick={async () => {
-                    setLoading(true);
-                    setBooking(prev => ({ ...prev, region: 'LA' }));
-                    await loadDepartures('LA');
-                    updateStep('route');
-                    setLoading(false);
-                  }}
-                >
-                  <div className="booking-card-background">
-                    <div className="booking-card-shine"></div>
-                  </div>
-                  
-                  <div className="booking-card-content">
-                    <div className="booking-card-header">
-                      <div className="booking-region-icon">🌴</div>
-                      <div className="booking-badge">추천</div>
-                    </div>
-                    
-                    <div className="booking-card-main">
-                      <h3 className="booking-region-name">LA 택시 예약</h3>
-                      <p className="booking-region-desc">LAX • BUR • LGB 공항</p>
-                      <div className="booking-features">
-                        <span className="booking-feature">✓ 단독차량</span>
-                        <span className="booking-feature">✓ 최고 평점</span>
-                      </div>
-                    </div>
-                    
-                    <div className="booking-card-action">
-                      <div className="booking-button">
-                        <span className="booking-button-text">LA 예약하기</span>
-                        <ArrowRight size={18} className="booking-arrow" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+              );
+            })}
+          </div>
 
-            {/* 특징 섹션 */}
-            <div className="features-section">
-              <div className="features-grid">
-                <div className="feature-item">
-                  <CheckCircle size={16} className="feature-icon" />
-                  <span className="feature-text">실시간 픽업</span>
-                </div>
-                <div className="feature-item">
-                  <CheckCircle size={16} className="feature-icon" />
-                  <span className="feature-text">한국어 지원</span>
-                </div>
-                <div className="feature-item">
-                  <CheckCircle size={16} className="feature-icon" />
-                  <span className="feature-text">투명한 요금</span>
-                </div>
+          {/* 특징 */}
+          <div className="mt-6">
+            <div className="flex justify-center gap-6">
+              <div className="flex items-center gap-2">
+                <CheckCircle size={16} style={{ color: 'var(--success)' }} />
+                <span className="caption">실시간 픽업</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle size={16} style={{ color: 'var(--success)' }} />
+                <span className="caption">한국어 지원</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle size={16} style={{ color: 'var(--success)' }} />
+                <span className="caption">투명한 요금</span>
               </div>
             </div>
           </div>
@@ -817,16 +700,15 @@ function App() {
             )}
         </div>
 
-          <div className="app-footer-unified">
-            <div className="footer-content-unified">
-              <button 
-                className="primary-btn-unified"
-                disabled={!booking.outbound.route || (booking.isRoundTrip && !booking.return.route)}
-                onClick={() => updateStep('passengers')}
-              >
-                다음
-              </button>
-            </div>
+        <div className="app-footer-unified">
+          <div className="footer-content-unified">
+            <button 
+              className="primary-btn-unified"
+              disabled={!booking.outbound.route || (booking.isRoundTrip && !booking.return.route)}
+              onClick={() => updateStep('passengers')}
+            >
+              다음
+            </button>
           </div>
         </div>
       </div>
@@ -1697,46 +1579,46 @@ function App() {
                   // 예약 데이터 준비
                   const bookingData = {
                     serviceTypeCode: 'PREMIUM_TAXI',
-                    region: booking.region,
-                    isRoundTrip: booking.isRoundTrip,
+                    region: booking.region || 'NY',
+                    isRoundTrip: booking.isRoundTrip || false,
                     trips: [
                       {
-                        departure: booking.outbound.departure,
-                        arrival: booking.outbound.arrival,
+                        departure: booking.outbound.departure || '',
+                        arrival: booking.outbound.arrival || '',
                         date: booking.airport.pickupDate || new Date().toISOString().split('T')[0],
                         time: booking.airport.arrivalTime || '12:00',
-                        passengers: booking.passengers,
-                        luggage: booking.luggage
+                        passengers: booking.passengers || 1,
+                        luggage: booking.luggage || 0
                       }
                     ],
                     customerInfo: {
-                      name: booking.customer.name,
-                      phone: booking.customer.phone,
-                      email: booking.payment.billing.email,
-                      kakaoId: booking.customer.kakaoId,
+                      name: booking.customer.name || '',
+                      phone: booking.customer.phone || '',
+                      email: booking.payment.billing.email || '',
+                      kakaoId: booking.customer.kakaoId || '',
                       flightInfo: {
-                        flightNumber: booking.airport.flightNumber,
-                        arrivalTime: booking.airport.arrivalTime
+                        flightNumber: booking.airport.flightNumber || '',
+                        arrivalTime: booking.airport.arrivalTime || ''
                       }
                     },
                     options: {
-                      simCard: booking.options.sim,
+                      simCard: booking.options.sim || false,
                       carSeat: {
-                        needed: booking.options.carSeat,
-                        type: booking.options.carSeatType,
+                        needed: booking.options.carSeat || false,
+                        type: booking.options.carSeatType || 'regular',
                         onSitePayment: true
                       }
                     },
                     paymentInfo: {
-                      method: booking.payment.method,
-                      amount: price.finalAmount,
-                      fee: booking.payment.method === 'full' ? price.fullPaymentFee - price.total : 0
+                      method: booking.payment.method || 'deposit',
+                      amount: price.finalAmount || 0,
+                      fee: booking.payment.method === 'full' ? (price.fullPaymentFee - price.total) || 0 : 0
                     },
                     specialRequests: booking.airport.address || '',
                     pricing: {
-                      basePrice: price.total,
+                      basePrice: price.total || 0,
                       additionalCharges: 0,
-                      subtotal: price.total
+                      subtotal: price.total || 0
                     }
                   };
                   
@@ -1955,7 +1837,7 @@ function App() {
               </div>
             </div>
           )}
-          <AppFooter />
+          {step !== 'landing' && <AppFooter />}
         </div>
       </main>
     </div>
