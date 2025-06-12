@@ -121,12 +121,20 @@ app.post('/api/bookings', async (req, res) => {
     const bookingData = req.body;
     
     // 예약 번호 생성
-    const bookingId = 'YR' + Date.now().toString().slice(-8);
+    const booking_number = 'YR' + Date.now().toString().slice(-8);
     
     // 새로운 예약 생성
     const newBooking = new Booking({
-      ...bookingData,
-      bookingId
+      booking_number: booking_number,
+      serviceTypeCode: bookingData.serviceTypeCode,
+      region: bookingData.region,
+      isRoundTrip: bookingData.isRoundTrip,
+      trips: bookingData.trips,
+      customerInfo: bookingData.customerInfo,
+      options: bookingData.options,
+      paymentInfo: bookingData.paymentInfo,
+      specialRequests: bookingData.specialRequests,
+      pricing: bookingData.pricing
     });
     
     // 데이터베이스에 저장
@@ -134,7 +142,7 @@ app.post('/api/bookings', async (req, res) => {
     
     res.json({
       success: true,
-      bookingId,
+      bookingId: booking_number,
       message: '예약이 완료되었습니다.',
       data: savedBooking
     });

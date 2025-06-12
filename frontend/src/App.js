@@ -1,8 +1,8 @@
 /**
- * YelloRide - 토스/쏘카 스타일 택시예약 앱
- * 깔끔하고 직관적인 F형 레이아웃
+ * YelloRide - 미주 특화 프리미엄 택시 예약 서비스
+ * 토스/애플/쏘카 스타일의 모던하고 깔끔한 디자인
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Users, 
   Luggage, 
@@ -15,9 +15,32 @@ import {
   Minus,
   Smartphone,
   Baby,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  Calendar,
+  Clock,
+  CreditCard,
+  Shield,
+  Star,
+  Navigation,
+  Globe,
+  Sparkles,
+  ChevronRight,
+  Info,
+  Check,
+  X,
+  Menu,
+  User,
+  HelpCircle,
+  Car,
+  Plane,
+  DollarSign,
+  Zap,
+  Heart,
+  Award,
+  Wifi,
+  Coffee
 } from 'lucide-react';
-import HeroImageSlider from './components/HeroImageSlider';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
@@ -65,76 +88,125 @@ class APIService {
       body: JSON.stringify(bookingData)
     });
   }
-
-  async getRegions() {
-    return this.request('/regions');
-  }
 }
 
 const api = new APIService();
 
+// YelloRide 로고 컴포넌트
+const YelloRideLogo = ({ variant = "default", className = "", animated = false }) => {
+  if (variant === "symbol") {
+    return (
+      <div className={`logo-symbol ${className} ${animated ? 'logo-animated' : ''}`}>
+        <div className="logo-icon-symbol">
+          <div className="logo-dot"></div>
+          <div className="logo-dot"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (variant === "compact") {
+    return (
+      <div className={`logo logo-compact ${className} ${animated ? 'logo-animated' : ''}`}>
+        <span className="logo-text">
+          <span className="logo-yello">Yello</span>
+          <span className="logo-ride">Ride</span>
+        </span>
+      </div>
+    );
+  }
+  
+  return (
+    <div className={`logo ${className} ${animated ? 'logo-animated' : ''}`}>
+      <span className="logo-text">
+        <span className="logo-yello">Yello</span>
+        <span className="logo-ride">Ride</span>
+        <span className="logo-tagline">simply good ride</span>
+      </span>
+    </div>
+  );
+};
+
+// 메인 App 컴포넌트
 function App() {
-  // URL 파라미터로 단계 관리
-  const [step, setStep] = useState('landing');
+  const [currentStep, setCurrentStep] = useState('hero');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [animateHero, setAnimateHero] = useState(false);
   
-
-  // URL 파라미터 관리
+  // 각 단계별 애니메이션 상태 관리
+  const [animatedSteps, setAnimatedSteps] = useState(new Set());
+  
+  // 상태 업데이트 최적화를 위한 ref
+  const stateRef = useRef();
+  
+  // 모바일 감지
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const stepParam = urlParams.get('step');
-    const validSteps = ['landing', 'region', 'route', 'passengers', 'customer', 'airport', 'options', 'payment', 'complete'];
-    
-    if (stepParam && validSteps.includes(stepParam)) {
-      setStep(stepParam);
-    } else {
-      setStep('landing');
-    }
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 랜딩 페이지일 때만 body 클래스 추가
-  useEffect(() => {
-    if (step === 'landing') {
-      document.body.classList.add('landing-mode');
-    } else {
-      document.body.classList.remove('landing-mode');
-    }
-    
-    return () => {
-      document.body.classList.remove('landing-mode');
-    };
-  }, [step]);
 
-  // 단계 변경 시 URL 업데이트 및 스크롤 최상단 이동
-  const updateStep = (newStep) => {
-    setStep(newStep);
-    const url = new URL(window.location);
-    if (newStep === 'landing') {
-      url.searchParams.delete('step');
-    } else {
-      url.searchParams.set('step', newStep);
+  // 히어로 애니메이션
+  useEffect(() => {
+    if (currentStep === 'hero' && !animatedSteps.has('hero')) {
+      setTimeout(() => {
+        setAnimateHero(true);
+        setAnimatedSteps(prev => new Set([...prev, 'hero']));
+      }, 100);
     }
-    window.history.pushState({}, '', url);
-    
-    // 페이지 변경 시 스크롤 최상단으로 이동
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [currentStep, animatedSteps]);
+
+  // 단계별 애니메이션 트리거 함수
+  const shouldAnimate = useCallback((stepName) => {
+    if (!animatedSteps.has(stepName)) {
+      setAnimatedSteps(prev => new Set([...prev, stepName]));
+      return true;
+    }
+    return false;
+  }, [animatedSteps]);
+
+
+  // 단계 변경 시 스크롤 최상단 이동
+  const updateStep = useCallback((newStep) => {
+    setCurrentStep(newStep);
+    // complete 페이지는 즉시 스크롤, 나머지는 smooth
+    if (newStep === 'complete') {
+      window.scrollTo(0, 0);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
   
   // 지역별 위치 데이터
   const [departures, setDepartures] = useState([]);
   const [arrivals, setArrivals] = useState([]);
+  const [returnDepartures, setReturnDepartures] = useState([]);
   const [returnArrivals, setReturnArrivals] = useState([]);
   
   // 예약 데이터
   const [booking, setBooking] = useState({
     region: '',
-    serviceType: 'taxi', // taxi or charter
+    serviceType: 'taxi',
     isRoundTrip: false,
     
-    // 편도/왕복 경로
-    outbound: { departure: '', arrival: '', route: null },
-    return: { departure: '', arrival: '', route: null },
+    // 편도 경로
+    outbound: { 
+      departure: '', 
+      arrival: '', 
+      route: null 
+    },
+    
+    // 왕복 경로
+    return: { 
+      departure: '', 
+      arrival: '', 
+      route: null 
+    },
     
     // 승객/짐
     passengers: 1,
@@ -146,8 +218,7 @@ function App() {
     customer: {
       name: '',
       phone: '',
-      kakaoId: '',
-      email: ''
+      kakaoId: ''
     },
     
     // 공항 정보
@@ -168,28 +239,61 @@ function App() {
     options: {
       sim: false,
       carSeat: false,
-      carSeatType: 'regular' // infant, regular, booster
+      carSeatType: 'regular'
     },
     
     // 결제
     payment: {
-      method: 'deposit', // deposit or full
+      method: 'deposit',
       billing: {
         name: '',
         company: '',
         email: ''
+      },
+      card: {
+        number: '',
+        expiry: '',
+        cvc: ''
       }
     }
   });
 
+  // 깜빡임 방지를 위한 최적화된 업데이트 함수
+  const updateBookingField = useCallback((path, value) => {
+    // 현재 스크롤 위치 저장
+    const currentScrollY = window.pageYOffset;
+    
+    setBooking(prev => {
+      const newBooking = { ...prev };
+      const keys = path.split('.');
+      let current = newBooking;
+      
+      for (let i = 0; i < keys.length - 1; i++) {
+        current[keys[i]] = { ...current[keys[i]] };
+        current = current[keys[i]];
+      }
+      
+      current[keys[keys.length - 1]] = value;
+      stateRef.current = newBooking;
+      return newBooking;
+    });
+    
+    // 스크롤 위치 복원
+    requestAnimationFrame(() => {
+      window.scrollTo(0, currentScrollY);
+    });
+  }, []);
+
+
   // 가격 계산
-  const calculatePrice = () => {
+  const calculatePrice = useCallback(() => {
     let total = 0;
     let details = [];
     
-    // 편도 요금 (DB에서 가져온 reservation_fee + local_payment_fee 사용)
+    // 편도 요금
     if (booking.outbound.route) {
-      const basePrice = (booking.outbound.route.reservation_fee || 0) + (booking.outbound.route.local_payment_fee || 0);
+      const basePrice = (booking.outbound.route.reservation_fee || 0) + 
+                       (booking.outbound.route.local_payment_fee || 0);
       total += basePrice;
       details.push({ label: '편도 기본요금', amount: basePrice });
       
@@ -208,9 +312,10 @@ function App() {
       }
     }
     
-    // 왕복 요금 (DB에서 가져온 reservation_fee + local_payment_fee 사용)
+    // 왕복 요금
     if (booking.isRoundTrip && booking.return.route) {
-      const basePrice = (booking.return.route.reservation_fee || 0) + (booking.return.route.local_payment_fee || 0);
+      const basePrice = (booking.return.route.reservation_fee || 0) + 
+                       (booking.return.route.local_payment_fee || 0);
       total += basePrice;
       details.push({ label: '왕복 기본요금', amount: basePrice });
       
@@ -228,21 +333,20 @@ function App() {
         details.push({ label: `왕복 짐 추가 (${booking.returnLuggage}개)`, amount: extra });
       }
       
-      // 왕복 10% 할인
-      const discount = Math.round(total * 0.1);
-      total -= discount;
-      details.push({ label: '왕복 할인 (10%)', amount: -discount });
+      // 왕복 $10 할인
+      total -= 10;
+      details.push({ label: '왕복 할인', amount: -10, type: 'discount' });
     }
     
     // 옵션 요금
     if (booking.options.sim) {
       total += 32;
-      details.push({ label: '유심 (+$32)', amount: 32 });
+      details.push({ label: '유심', amount: 32 });
     }
     
     if (booking.options.carSeat) {
       const carSeatFee = booking.isRoundTrip ? 20 : 10;
-      details.push({ label: `카시트 (현장결제 $${carSeatFee})`, amount: 0, note: '현장결제' });
+      details.push({ label: `카시트 (현장결제)`, amount: 0, note: `$${carSeatFee}` });
     }
     
     const reservationFee = booking.isRoundTrip ? 30 : 20;
@@ -255,28 +359,34 @@ function App() {
       fullPaymentFee: total + fullPaymentFee,
       finalAmount: booking.payment.method === 'deposit' ? reservationFee : total + fullPaymentFee
     };
-  };
+  }, [booking]);
 
-  // 출발지 목록 로드
+  // API 호출 함수들
   const loadDepartures = async (region) => {
     try {
       setLoading(true);
       const departureList = await api.getDepartures(region);
       setDepartures(departureList);
+      setReturnDepartures(departureList);
     } catch (err) {
       console.error('Failed to load departures:', err);
       setError('출발지 목록을 불러오는데 실패했습니다.');
       setDepartures([]);
+      setReturnDepartures([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // 도착지 목록 로드
-  const loadArrivals = async (region, departure) => {
+  const loadArrivals = async (region, departure, isReturn = false) => {
     try {
       setLoading(true);
       const arrivalList = await api.getArrivals(region, departure);
+      if (isReturn) {
+        setReturnArrivals(arrivalList);
+      } else {
+        setArrivals(arrivalList);
+      }
       return arrivalList;
     } catch (err) {
       console.error('Failed to load arrivals:', err);
@@ -287,7 +397,6 @@ function App() {
     }
   };
 
-  // 경로 검색
   const searchRoute = async (departure, arrival, region) => {
     try {
       const response = await api.searchRoute(departure, arrival, region);
@@ -298,416 +407,324 @@ function App() {
     }
   };
 
-  // 새로운 디자인 네비게이션
+  // 공통 컴포넌트들
   const TopNav = ({ title, onBack, showBack = true }) => (
-    <div className="nav-container">
-      <div className="nav-content">
+    <div className="top-nav glass-effect">
+      <div className="nav-inner">
         {showBack && onBack ? (
-          <button className="nav-back" onClick={onBack}>
+          <button className="nav-back-btn hover-scale" onClick={onBack}>
             <ArrowLeft size={20} />
           </button>
         ) : (
-          <div className="nav-action"></div>
+          <div className="nav-spacer" />
         )}
         <h1 className="nav-title">{title}</h1>
-        <div className="nav-action"></div>
+        <button className="nav-help-btn hover-scale">
+          <HelpCircle size={20} />
+        </button>
       </div>
     </div>
   );
 
-  // 공통 푸터
-  const AppFooter = () => (
-    <div className="app-footer">
-      <div className="footer-content">
-        <div className="company-info">
-          <strong>Yellow Travel LLC</strong> · 미국 정식 등록 업체
-        </div>
-        <div className="copyright">
-          © 2025 YelloRide. All rights reserved.
+  const BottomCTA = ({ text, onClick, disabled }) => (
+    <div className="bottom-cta-wrapper">
+      <div className="bottom-cta">
+        <div className="cta-inner">
+          <button 
+            className="cta-button hover-lift"
+            onClick={onClick}
+            disabled={disabled}
+          >
+            <span>{text}</span>
+            <ArrowRight size={24} />
+          </button>
         </div>
       </div>
     </div>
   );
 
-  // 심플 로고 (최소한 사용)
-  const YelloRideLogo = ({ size = 16, className = "logo-icon", variant = "simple" }) => {
-    // 기본적으로 작은 심플 버전만 사용
+  // 히어로 페이지
+  const HeroPage = () => {
+    if (currentStep !== 'hero') return null;
+
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-        <rect width="24" height="24" rx="6" fill="currentColor"/>
-        <path d="M6 18V9L9 6H15L18 9V12H15V15H12V18H6Z" fill="white"/>
-        <circle cx="12" cy="12" r="1" fill="currentColor"/>
-      </svg>
+      <div className="hero-page">
+        <div className="hero-background">
+          <div className="hero-image-wrapper">
+            <img 
+              src={isMobile ? "/image/title.png" : "/image/title_wide.png"} 
+              alt="YelloRide Hero" 
+              className="hero-image"
+            />
+            <div className="hero-overlay" />
+          </div>
+          
+          {/* 애니메이션 요소들 */}
+          <div className="hero-particles">
+            {[...Array(20)].map((_, i) => (
+              <div key={i} className="particle" style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${15 + Math.random() * 10}s`
+              }} />
+            ))}
+          </div>
+        </div>
+        
+        <div className="hero-content">
+          <nav className="hero-nav fade-in">
+            <YelloRideLogo variant="default" className="hero-logo" animated />
+          </nav>
+          
+          <div className="hero-main">
+            <div className={`hero-text-wrapper ${animateHero ? 'animate' : ''}`}>
+              <div className="hero-badge slide-down">
+                <Sparkles size={16} />
+                <span>미주 No.1 택시 예약</span>
+              </div>
+              
+              <h1 className="hero-title">
+                <span className="title-line slide-up">편안한 여행의</span>
+                <span className="title-line slide-up delay-1">첫 걸음</span>
+              </h1>
+              
+              <p className="hero-subtitle slide-up delay-2">
+                뉴욕과 LA, 어디든 안전하고 편리하게
+              </p>
+              
+              <div className="hero-features slide-up delay-3">
+                <div className="feature-pill">
+                  <CheckCircle size={14} />
+                  <span>한국어 서비스</span>
+                </div>
+                <div className="feature-pill">
+                  <CheckCircle size={14} />
+                  <span>투명한 요금</span>
+                </div>
+                <div className="feature-pill">
+                  <CheckCircle size={14} />
+                  <span>24시간 운행</span>
+                </div>
+              </div>
+              
+              <button 
+                className="hero-cta-button hover-glow scale-in delay-4"
+                onClick={() => updateStep('main')}
+              >
+                <span>지금 예약하기</span>
+                <ArrowRight size={20} />
+              </button>
+              
+              <div className="hero-trust-badges slide-up delay-5">
+                <div className="trust-item">
+                  <Award size={16} />
+                  <span>10만+ 이용객</span>
+                </div>
+                <div className="trust-item">
+                  <Star size={16} />
+                  <span>4.9 평점</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
     );
   };
 
-  // 스크롤 함수
-  const scrollToRegionSelection = () => {
-    const element = document.getElementById('region-selection');
-    if (element) {
-      const offset = element.offsetTop - 80; // 헤더 높이 고려
-      window.scrollTo({
-        top: offset,
-        behavior: 'smooth'
-      });
-    }
-  };
+  // 메인 페이지
+  const MainPage = () => {
+    if (currentStep !== 'main') return null;
 
-  // 새로운 디자인 랜딩 페이지
-  const LandingPage = () => {
-    if (step !== 'landing') return null;
-
-    const handleStartBooking = () => {
-      updateStep('region');
-    };
-
-    return <HeroImageSlider onBookingClick={handleStartBooking} />;
-  };
-
-  // 새로운 디자인 지역 선택 화면
-  const RegionStep = () => {
-    const [availableRegions, setAvailableRegions] = useState([]);
-    
-    useEffect(() => {
-      const loadRegions = async () => {
-        try {
-          const regions = await api.getRegions();
-          setAvailableRegions(regions);
-        } catch (err) {
-          console.error('Failed to load regions:', err);
-          setError('지역 목록을 불러오는데 실패했습니다.');
-        }
-      };
-      
-      if (step === 'region') {
-        loadRegions();
-      }
-    }, [step]);
-
-    if (step !== 'region') return null;
+    const isAnimated = shouldAnimate('main');
 
     return (
-      <div className="page-container">
+      <div className="main-page">
+        <div className="main-header glass-effect">
+          <YelloRideLogo variant="compact" />
+        </div>
+        
+        <div className="main-content">
+          <div className="content-wrapper">
+            <div className={`main-title-section ${isAnimated ? 'fade-in' : ''}`}>
+              <h1 className="main-title">어디로 모실까요?</h1>
+              <p className="main-subtitle">서비스 지역을 선택해주세요</p>
+            </div>
+            
+            <div className="region-grid">
+              <button 
+                className="region-card hover-lift glass-card"
+                onClick={async () => {
+                  updateBookingField('region', 'NY');
+                  await loadDepartures('NY');
+                  updateStep('service');
+                }}
+              >
+                <div className="region-icon-wrapper pulse">
+                  <span className="region-emoji">🗽</span>
+                </div>
+                <div className="region-content">
+                  <h3>뉴욕</h3>
+                  <p>New York</p>
+                  <div className="region-features">
+                    <span className="feature-tag">JFK 공항</span>
+                    <span className="feature-tag">맨해튼</span>
+                    <span className="feature-tag">24시간</span>
+                  </div>
+                </div>
+                <div className="region-arrow">
+                  <ChevronRight size={20} />
+                </div>
+              </button>
+              
+              <button 
+                className="region-card hover-lift glass-card"
+                onClick={async () => {
+                  updateBookingField('region', 'LA');
+                  await loadDepartures('LA');
+                  updateStep('service');
+                }}
+              >
+                <div className="region-icon-wrapper pulse">
+                  <span className="region-emoji">🌴</span>
+                </div>
+                <div className="region-content">
+                  <h3>로스앤젤레스</h3>
+                  <p>Los Angeles</p>
+                  <div className="region-features">
+                    <span className="feature-tag">LAX 공항</span>
+                    <span className="feature-tag">할리우드</span>
+                    <span className="feature-tag">한인타운</span>
+                  </div>
+                </div>
+                <div className="region-arrow">
+                  <ChevronRight size={20} />
+                </div>
+              </button>
+            </div>
+            
+            <div className="service-highlights">
+              <div className={`highlight-card glass-card ${isAnimated ? 'slide-up' : ''}`}>
+                <div className="highlight-icon">
+                  <Shield size={24} />
+                </div>
+                <h4>안전한 서비스</h4>
+                <p>정식 라이센스 보유<br />종합보험 가입 차량</p>
+              </div>
+              
+              <div className={`highlight-card glass-card ${isAnimated ? 'slide-up delay-1' : ''}`}>
+                <div className="highlight-icon">
+                  <Globe size={24} />
+                </div>
+                <h4>한국어 지원</h4>
+                <p>24시간 카카오톡 상담<br />한국어 가능 기사</p>
+              </div>
+              
+              <div className={`highlight-card glass-card ${isAnimated ? 'slide-up delay-2' : ''}`}>
+                <div className="highlight-icon">
+                  <DollarSign size={24} />
+                </div>
+                <h4>투명한 요금</h4>
+                <p>정찰제 운영<br />숨겨진 비용 없음</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 서비스 선택
+  const ServiceStep = () => {
+    if (currentStep !== 'service') return null;
+
+    const isAnimated = shouldAnimate('service');
+
+    return (
+      <div className="step-page">
         <TopNav 
-          title="어디로 떠나시나요?" 
-          onBack={() => updateStep('landing')}
+          title={`${booking.region === 'NY' ? '뉴욕' : 'LA'} 서비스`}
+          onBack={() => updateStep('main')}
         />
         
-        <div className="page-content">
-          <h1 className="heading-1">어디로 떠나시나요?</h1>
-          <p className="body-1">미국 전역 안전한 단독차량 서비스</p>
-
-          {/* 지역 선택 카드들 */}
-          <div className="flex flex-col gap-4">
-            {availableRegions.map((region) => {
-              const regionNames = { 'NY': '뉴욕', 'NJ': '뉴저지' };
-              const regionName = regionNames[region] || region;
-              const regionIcons = { 'NY': '🗽', 'NJ': '🌉' };
-              const regionIcon = regionIcons[region] || '🚗';
-              const airportInfo = {
-                'NY': 'JFK • LGA • EWR 공항',
-                'NJ': 'EWR • 뉴저지 전역'
-              };
-              const regionDesc = airportInfo[region] || '공항 및 시내 전역';
-              
-              return (
-                <div 
-                  key={region}
-                  className="card"
-                  style={{ cursor: 'pointer' }}
-                  onClick={async () => {
-                    setLoading(true);
-                    setBooking(prev => ({ ...prev, region }));
-                    await loadDepartures(region);
-                    updateStep('route');
-                    setLoading(false);
-                  }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div style={{ fontSize: '32px' }}>{regionIcon}</div>
-                    <div className="flex-1">
-                      <h3 className="heading-3">{regionName} 택시 예약</h3>
-                      <p className="body-2">{regionDesc}</p>
-                    </div>
-                    <ArrowRight size={20} className="text-gray-400" />
-                  </div>
-                </div>
-              );
-            })}
+        <div className="step-content">
+          <div className={`section-header ${isAnimated ? 'fade-in' : ''}`}>
+            <h1 className="section-title">이용하실 서비스를 선택해주세요</h1>
+            <p className="section-subtitle">원하시는 서비스 유형을 선택하세요</p>
           </div>
-
-          {/* 특징 */}
-          <div className="mt-6">
-            <div className="flex justify-center gap-6">
-              <div className="flex items-center gap-2">
-                <CheckCircle size={16} style={{ color: 'var(--success)' }} />
-                <span className="caption">실시간 픽업</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle size={16} style={{ color: 'var(--success)' }} />
-                <span className="caption">한국어 지원</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle size={16} style={{ color: 'var(--success)' }} />
-                <span className="caption">투명한 요금</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // RouteStep - 경로 선택 화면
-  const RouteStep = () => {
-    if (step !== 'route') return null;
-
-    return (
-      <div className="step-container">
-        <TopNav 
-          title="어디로 모셔드릴까요?" 
-          onBack={() => updateStep('region')}
-        />
-        <div className="step-content-top">
-            {/* Grid Layout - 타이틀 섹션 */}
-            <div className="grid-section title-section">
-              <h1 className="main-title-unified">어디로 모셔드릴까요?</h1>
-              <p className="main-subtitle-unified">{booking.region === 'NY' ? '뉴욕' : 'LA'} 출발지와 도착지를 선택해주세요</p>
-            </div>
-
-            {/* Grid Layout - 왕복 토글 섹션 */}
-            <div className="grid-section toggle-section">
-              <div className="trip-toggle-unified">
-                <div className="toggle-content-grid">
-                  <div className="toggle-info-section">
-                    <span className="toggle-label-unified">왕복 예약</span>
-                    {booking.isRoundTrip && <span className="discount-tag-unified">10% 할인</span>}
-                  </div>
-                  <div className="toggle-control-section">
-                    <label className="switch-unified">
-                      <input 
-                        type="checkbox"
-                        checked={booking.isRoundTrip}
-                        onChange={(e) => setBooking(prev => ({ ...prev, isRoundTrip: e.target.checked }))}
-                      />
-                      <span className="slider-unified"></span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Grid Layout - 편도 경로 섹션 */}
-            <div className="grid-section route-section">
-              <div className="route-card-unified">
-                <div className="route-header-grid">
-                  <h3 className="route-title-unified">편도</h3>
-                </div>
-                
-                <div className="location-inputs-grid">
-                  <div className="input-row-grid">
-                    <div className="input-group-unified departure-section">
-                      <label className="input-label-unified">출발지</label>
-                      <select 
-                        className="location-select-unified"
-                        value={booking.outbound.departure}
-                        onChange={async (e) => {
-                          const departure = e.target.value;
-                          setBooking(prev => ({ 
-                            ...prev, 
-                            outbound: { ...prev.outbound, departure, arrival: '', route: null }
-                          }));
-                          
-                          if (departure) {
-                            setLoading(true);
-                            const availableArrivals = await loadArrivals(booking.region, departure);
-                            setArrivals(availableArrivals);
-                            setLoading(false);
-                          } else {
-                            setArrivals([]);
-                          }
-                        }}
-                      >
-                        <option value="">선택해주세요</option>
-                        {departures.map(location => (
-                          <option key={location} value={location}>{location}</option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div className="route-arrow-section">
-                      <div className="route-arrow-unified">→</div>
-                    </div>
-                    
-                    <div className="input-group-unified arrival-section">
-                      <label className="input-label-unified">도착지</label>
-                      <select 
-                        className="location-select-unified"
-                        value={booking.outbound.arrival}
-                        onChange={async (e) => {
-                          const arrival = e.target.value;
-                          setBooking(prev => ({ 
-                            ...prev, 
-                            outbound: { ...prev.outbound, arrival, route: null }
-                          }));
-                          
-                          if (booking.outbound.departure && arrival) {
-                            setLoading(true);
-                            const route = await searchRoute(booking.outbound.departure, arrival, booking.region);
-                            if (route) {
-                              setBooking(prev => ({ 
-                                ...prev, 
-                                outbound: { ...prev.outbound, route }
-                              }));
-                            }
-                            setLoading(false);
-                          }
-                        }}
-                        disabled={!booking.outbound.departure}
-                      >
-                        <option value="">선택해주세요</option>
-                        {arrivals.map(location => (
-                          <option key={location} value={location}>{location}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-            
-                {booking.outbound.route && (
-                  <div className="price-card-unified">
-                    <div className="price-header-grid">
-                      <div className="price-status-section">
-                        <CheckCircle size={16} color="#10b981" />
-                        <span className="price-status-text">경로 확인</span>
-                      </div>
-                    </div>
-                    <div className="price-details-grid">
-                      <div className="price-main-section">
-                        <div className="total-price-unified">
-                          총 ${booking.outbound.route.reservation_fee + booking.outbound.route.local_payment_fee}
-                        </div>
-                        <div className="price-breakdown-unified">
-                          <span>예약금 ${booking.outbound.route.reservation_fee} + 현장결제 ${booking.outbound.route.local_payment_fee}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           
-            {/* Grid Layout - 왕복 경로 섹션 */}
-            {booking.isRoundTrip && (
-              <div className="grid-section route-section">
-                <div className="route-card-unified">
-                  <div className="route-header-grid">
-                    <h3 className="route-title-unified">왕복</h3>
-                  </div>
-                  
-                  <div className="location-inputs-grid">
-                    <div className="input-row-grid">
-                      <div className="input-group-unified departure-section">
-                        <label className="input-label-unified">출발지</label>
-                        <select 
-                          className="location-select-unified"
-                          value={booking.return.departure}
-                          onChange={async (e) => {
-                            const departure = e.target.value;
-                            setBooking(prev => ({ 
-                              ...prev, 
-                              return: { ...prev.return, departure, arrival: '', route: null }
-                            }));
-                            
-                            if (departure) {
-                              setLoading(true);
-                              const availableArrivals = await loadArrivals(booking.region, departure);
-                              setReturnArrivals(availableArrivals);
-                              setLoading(false);
-                            } else {
-                              setReturnArrivals([]);
-                            }
-                          }}
-                        >
-                          <option value="">선택해주세요</option>
-                          {departures.map(location => (
-                            <option key={location} value={location}>{location}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div className="route-arrow-section">
-                        <div className="route-arrow-unified">→</div>
-                      </div>
-                      
-                      <div className="input-group-unified arrival-section">
-                        <label className="input-label-unified">도착지</label>
-                        <select 
-                          className="location-select-unified"
-                          value={booking.return.arrival}
-                          onChange={async (e) => {
-                            const arrival = e.target.value;
-                            setBooking(prev => ({ 
-                              ...prev, 
-                              return: { ...prev.return, arrival, route: null }
-                            }));
-                            
-                            if (booking.return.departure && arrival) {
-                              setLoading(true);
-                              const route = await searchRoute(booking.return.departure, arrival, booking.region);
-                              if (route) {
-                                setBooking(prev => ({ 
-                                  ...prev, 
-                                  return: { ...prev.return, route }
-                                }));
-                              }
-                              setLoading(false);
-                            }
-                          }}
-                          disabled={!booking.return.departure}
-                        >
-                          <option value="">선택해주세요</option>
-                          {returnArrivals.map(location => (
-                            <option key={location} value={location}>{location}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {booking.return.route && (
-                    <div className="price-card-unified">
-                      <div className="price-header-grid">
-                        <div className="price-status-section">
-                          <CheckCircle size={16} color="#10b981" />
-                          <span className="price-status-text">왕복 경로 확인</span>
-                        </div>
-                      </div>
-                      <div className="price-details-grid">
-                        <div className="price-main-section">
-                          <div className="total-price-unified">
-                            총 ${booking.return.route.reservation_fee + booking.return.route.local_payment_fee}
-                          </div>
-                          <div className="price-breakdown-unified">
-                            <span>예약금 ${booking.return.route.reservation_fee} + 현장결제 ${booking.return.route.local_payment_fee}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+          <div className="service-options">
+            <button 
+              className="service-option-card hover-lift glass-card active"
+              onClick={() => {
+                updateBookingField('serviceType', 'taxi');
+                updateStep('route');
+              }}
+            >
+              <div className="service-header">
+                <div className="service-icon-box">
+                  <Car size={32} />
+                </div>
+                <div className="service-info">
+                  <h3>택시 예약</h3>
+                  <p>공항 픽업, 시내 이동</p>
                 </div>
               </div>
-            )}
-        </div>
-
-        <div className="app-footer-unified">
-          <div className="footer-content-unified">
+              
+              <div className="service-benefits">
+                <div className="benefit-item">
+                  <Check size={16} />
+                  <span>정확한 픽업 시간</span>
+                </div>
+                <div className="benefit-item">
+                  <Check size={16} />
+                  <span>고정 요금제</span>
+                </div>
+                <div className="benefit-item">
+                  <Check size={16} />
+                  <span>왕복 예약 $10 할인</span>
+                </div>
+              </div>
+              
+              <div className="service-price">
+                <span className="price-label">예약금</span>
+                <span className="price-value">$20~</span>
+              </div>
+            </button>
+            
             <button 
-              className="primary-btn-unified"
-              disabled={!booking.outbound.route || (booking.isRoundTrip && !booking.return.route)}
-              onClick={() => updateStep('passengers')}
+              className="service-option-card glass-card disabled"
+              disabled
             >
-              다음
+              <div className="service-header">
+                <div className="service-icon-box">
+                  <Clock size={32} />
+                </div>
+                <div className="service-info">
+                  <h3>차량 대절</h3>
+                  <p>시간제 전용 차량</p>
+                </div>
+              </div>
+              
+              <div className="service-benefits">
+                <div className="benefit-item">
+                  <Check size={16} />
+                  <span>4시간부터 이용</span>
+                </div>
+                <div className="benefit-item">
+                  <Check size={16} />
+                  <span>전담 기사 배정</span>
+                </div>
+                <div className="benefit-item">
+                  <Check size={16} />
+                  <span>자유로운 일정</span>
+                </div>
+              </div>
+              
+              <div className="coming-soon-badge">
+                <span>Coming Soon</span>
+              </div>
             </button>
           </div>
         </div>
@@ -715,1130 +732,1439 @@ function App() {
     );
   };
 
+  // 경로 선택
+  const RouteStep = () => {
+    if (currentStep !== 'route') return null;
 
-  // 인원/짐 선택 화면
-  const PassengersStep = () => (
-    <div className="step-container">
-      <TopNav 
-        title="인원 및 짐 개수"
-        onBack={() => setStep('route')}
-      />
-      <div className="step-content">
-      
-      <div className="passengers-selection">
-        {/* 차량 배정 안내 */}
-        <div className="vehicle-info">
-          <h4>고객님 선택에 따라 차량이 배정됩니다</h4>
-          <ul>
-            <li><strong>승용차:</strong> 1-3인 캐리어 1-3개</li>
-            <li><strong>SUV:</strong> 1-3인 캐리어 3-4개</li>
-            <li><strong>미니밴:</strong> 1-6인 캐리어 5-10개</li>
-          </ul>
+    const isAnimated = shouldAnimate('route');
+
+    return (
+      <div className="step-page">
+        <TopNav 
+          title="경로 선택" 
+          onBack={() => updateStep('service')}
+        />
+        
+        <div className="step-content">
+          <div className={`section-header ${isAnimated ? 'fade-in' : ''}`}>
+            <h1 className="section-title">어디로 모실까요?</h1>
+            <p className="section-subtitle">출발지와 도착지를 선택해주세요</p>
+          </div>
           
-          <div className="luggage-notes">
-            <p>• 캐리어는 기내용, 수화물 사이즈 상관없이 1개</p>
-            <p>• 3단 이민가방/대형 유모차/골프가방은 2개로 선택</p>
-            <p>• 기내용 캐리어 사이즈(20인치) 미만의 핸드백/백팩/쇼핑백 등 무료</p>
-            {booking.region === 'LA' && (
-              <p>• <strong>LA지역 예약시 4인 이상은 반드시 짐갯수 5개 임의 선택필수</strong></p>
+          {/* 왕복 토글 */}
+          <div className="round-trip-toggle glass-card">
+            <div className="toggle-content">
+              <div className="toggle-left">
+                <h4>왕복 예약</h4>
+                <p>왕복 예약 시 <span className="discount-highlight">$10 할인</span></p>
+              </div>
+              <label className="modern-toggle">
+                <input 
+                  type="checkbox"
+                  checked={booking.isRoundTrip}
+                  onChange={(e) => updateBookingField('isRoundTrip', e.target.checked)}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          
+          {/* 편도 경로 */}
+          <div className={`route-section ${isAnimated ? 'fade-in' : ''}`}>
+            <div className="section-label">
+              <span className="label-text">편도</span>
+              <span className="label-badge">필수</span>
+            </div>
+            
+            <div className="route-inputs glass-card">
+              <div className="route-input-group">
+                <label className="input-label">
+                  <MapPin size={16} />
+                  <span>출발지</span>
+                </label>
+                <select 
+                  className="modern-select"
+                  value={booking.outbound.departure}
+                  onChange={async (e) => {
+                    const departure = e.target.value;
+                    updateBookingField('outbound.departure', departure);
+                    updateBookingField('outbound.arrival', '');
+                    updateBookingField('outbound.route', null);
+                    
+                    if (departure) {
+                      await loadArrivals(booking.region, departure, false);
+                    } else {
+                      setArrivals([]);
+                    }
+                  }}
+                >
+                  <option value="">선택해주세요</option>
+                  {departures.map(location => (
+                    <option key={location} value={location}>{location}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="route-divider">
+                <div className="divider-line"></div>
+                <div className="divider-icon">
+                  <ArrowRight size={16} />
+                </div>
+                <div className="divider-line"></div>
+              </div>
+              
+              <div className="route-input-group">
+                <label className="input-label">
+                  <MapPin size={16} />
+                  <span>도착지</span>
+                </label>
+                <select 
+                  className="modern-select"
+                  value={booking.outbound.arrival}
+                  onChange={async (e) => {
+                    const arrival = e.target.value;
+                    updateBookingField('outbound.arrival', arrival);
+                    updateBookingField('outbound.route', null);
+                    
+                    if (booking.outbound.departure && arrival) {
+                      setLoading(true);
+                      const route = await searchRoute(
+                        booking.outbound.departure, 
+                        arrival, 
+                        booking.region
+                      );
+                      if (route) {
+                        updateBookingField('outbound.route', route);
+                      }
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={!booking.outbound.departure}
+                >
+                  <option value="">선택해주세요</option>
+                  {arrivals.map(location => (
+                    <option key={location} value={location}>{location}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            {booking.outbound.route && (
+              <div className={`route-price-display glass-card success ${isAnimated ? 'slide-up' : ''}`}>
+                <div className="price-icon">
+                  <CheckCircle size={20} />
+                </div>
+                <div className="price-details">
+                  <span className="price-total">
+                    총 ${booking.outbound.route.reservation_fee + booking.outbound.route.local_payment_fee}
+                  </span>
+                  <span className="price-breakdown">
+                    예약금 ${booking.outbound.route.reservation_fee} + 현장 ${booking.outbound.route.local_payment_fee}
+                  </span>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-        
-        {/* 편도 인원/짐 - 개선된 카드 레이아웃 */}
-        <div className="passengers-cards">
-          <h4 className="section-title">편도</h4>
           
-          <div className="counter-cards-grid">
-            {/* 승객 수 카드 */}
-            <div className="counter-card">
-              <div className="counter-card-header">
-                <Users size={20} className="counter-icon" />
-                <span className="counter-title">승객 수</span>
+          {/* 왕복 경로 */}
+          {booking.isRoundTrip && (
+            <div className={`route-section ${isAnimated ? 'fade-in' : ''}`}>
+              <div className="section-label">
+                <span className="label-text">왕복</span>
+                <span className="label-badge discount">$10 할인</span>
               </div>
-              <div className="counter-controls">
-                <button 
-                  className="counter-btn"
-                  onClick={() => setBooking(prev => ({ ...prev, passengers: Math.max(1, prev.passengers - 1) }))}
-                  disabled={booking.passengers <= 1}
-                >
-                  <Minus size={18} />
-                </button>
-                <div className="counter-display">
-                  <span className="counter-value">{booking.passengers}</span>
-                  <span className="counter-unit">명</span>
+              
+              <div className="route-inputs glass-card">
+                <div className="route-input-group">
+                  <label className="input-label">
+                    <MapPin size={16} />
+                    <span>출발지</span>
+                  </label>
+                  <select 
+                    className="modern-select"
+                    value={booking.return.departure}
+                    onChange={async (e) => {
+                      const departure = e.target.value;
+                      updateBookingField('return.departure', departure);
+                      updateBookingField('return.arrival', '');
+                      updateBookingField('return.route', null);
+                      
+                      if (departure) {
+                        await loadArrivals(booking.region, departure, true);
+                      } else {
+                        setReturnArrivals([]);
+                      }
+                    }}
+                  >
+                    <option value="">선택해주세요</option>
+                    {returnDepartures.map(location => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
                 </div>
-                <button 
-                  className="counter-btn"
-                  onClick={() => setBooking(prev => ({ ...prev, passengers: Math.min(6, prev.passengers + 1) }))}
-                  disabled={booking.passengers >= 6}
-                >
-                  <Plus size={18} />
-                </button>
+                
+                <div className="route-divider">
+                  <div className="divider-line"></div>
+                  <div className="divider-icon">
+                    <ArrowRight size={16} />
+                  </div>
+                  <div className="divider-line"></div>
+                </div>
+                
+                <div className="route-input-group">
+                  <label className="input-label">
+                    <MapPin size={16} />
+                    <span>도착지</span>
+                  </label>
+                  <select 
+                    className="modern-select"
+                    value={booking.return.arrival}
+                    onChange={async (e) => {
+                      const arrival = e.target.value;
+                      updateBookingField('return.arrival', arrival);
+                      updateBookingField('return.route', null);
+                      
+                      if (booking.return.departure && arrival) {
+                        setLoading(true);
+                        const route = await searchRoute(
+                          booking.return.departure, 
+                          arrival, 
+                          booking.region
+                        );
+                        if (route) {
+                          updateBookingField('return.route', route);
+                        }
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={!booking.return.departure}
+                  >
+                    <option value="">선택해주세요</option>
+                    {returnArrivals.map(location => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              {booking.passengers >= 5 && (
-                <div className="surcharge-note">
-                  <span className="surcharge-text">추가 요금: +${booking.passengers === 5 ? 5 : 10}</span>
-                  <small>5명부터 추가요금 발생</small>
+              
+              {booking.return.route && (
+                <div className={`route-price-display glass-card success ${isAnimated ? 'slide-up' : ''}`}>
+                  <div className="price-icon">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div className="price-details">
+                    <span className="price-total">
+                      총 ${booking.return.route.reservation_fee + booking.return.route.local_payment_fee}
+                    </span>
+                    <span className="price-breakdown">
+                      예약금 ${booking.return.route.reservation_fee} + 현장 ${booking.return.route.local_payment_fee}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* 짐 개수 카드 */}
-            <div className="counter-card">
-              <div className="counter-card-header">
-                <Luggage size={20} className="counter-icon" />
-                <span className="counter-title">짐 개수</span>
-              </div>
-              <div className="counter-controls">
-                <button 
-                  className="counter-btn"
-                  onClick={() => setBooking(prev => ({ ...prev, luggage: Math.max(0, prev.luggage - 1) }))}
-                  disabled={booking.luggage <= 0}
-                >
-                  <Minus size={18} />
-                </button>
-                <div className="counter-display">
-                  <span className="counter-value">{booking.luggage}</span>
-                  <span className="counter-unit">개</span>
-                </div>
-                <button 
-                  className="counter-btn"
-                  onClick={() => setBooking(prev => ({ ...prev, luggage: Math.min(10, prev.luggage + 1) }))}
-                  disabled={booking.luggage >= 10}
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
-              {booking.luggage >= 3 && (
-                <div className="surcharge-note">
-                  <span className="surcharge-text">추가 요금: +${5 + (booking.luggage - 3) * 5}</span>
-                  <small>3개부터 추가요금 발생</small>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
         
-        {/* 왕복 인원/짐 - 개선된 카드 레이아웃 */}
-        {booking.isRoundTrip && (
-          <div className="passengers-cards">
-            <h4 className="section-title">왕복</h4>
-            
-            <div className="counter-cards-grid">
-              {/* 왕복 승객 수 카드 */}
-              <div className="counter-card">
-                <div className="counter-card-header">
-                  <Users size={20} className="counter-icon" />
-                  <span className="counter-title">승객 수</span>
-                </div>
-                <div className="counter-controls">
-                  <button 
-                    className="counter-btn"
-                    onClick={() => setBooking(prev => ({ ...prev, returnPassengers: Math.max(1, prev.returnPassengers - 1) }))}
-                    disabled={booking.returnPassengers <= 1}
-                  >
-                    <Minus size={18} />
-                  </button>
-                  <div className="counter-display">
-                    <span className="counter-value">{booking.returnPassengers}</span>
-                    <span className="counter-unit">명</span>
-                  </div>
-                  <button 
-                    className="counter-btn"
-                    onClick={() => setBooking(prev => ({ ...prev, returnPassengers: Math.min(6, prev.returnPassengers + 1) }))}
-                    disabled={booking.returnPassengers >= 6}
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-                {booking.returnPassengers >= 5 && (
-                  <div className="surcharge-note">
-                    <span className="surcharge-text">추가 요금: +${booking.returnPassengers === 5 ? 5 : 10}</span>
-                    <small>5명부터 추가요금 발생</small>
-                  </div>
-                )}
-              </div>
-
-              {/* 왕복 짐 개수 카드 */}
-              <div className="counter-card">
-                <div className="counter-card-header">
-                  <Luggage size={20} className="counter-icon" />
-                  <span className="counter-title">짐 개수</span>
-                </div>
-                <div className="counter-controls">
-                  <button 
-                    className="counter-btn"
-                    onClick={() => setBooking(prev => ({ ...prev, returnLuggage: Math.max(0, prev.returnLuggage - 1) }))}
-                    disabled={booking.returnLuggage <= 0}
-                  >
-                    <Minus size={18} />
-                  </button>
-                  <div className="counter-display">
-                    <span className="counter-value">{booking.returnLuggage}</span>
-                    <span className="counter-unit">개</span>
-                  </div>
-                  <button 
-                    className="counter-btn"
-                    onClick={() => setBooking(prev => ({ ...prev, returnLuggage: Math.min(10, prev.returnLuggage + 1) }))}
-                    disabled={booking.returnLuggage >= 10}
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-                {booking.returnLuggage >= 3 && (
-                  <div className="surcharge-note">
-                    <span className="surcharge-text">추가 요금: +${5 + (booking.returnLuggage - 3) * 5}</span>
-                    <small>3개부터 추가요금 발생</small>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* LA 4인 이상 경고 */}
-        {booking.region === 'LA' && booking.passengers >= 4 && booking.luggage < 5 && (
-          <div className="warning">
-            <AlertCircle size={16} />
-            LA지역 4인 이상 예약시 짐 개수를 최소 5개로 선택해주세요
-          </div>
-        )}
-        
-        </div>
-        
-        {/* Sticky 다음 버튼 */}
-        <div className="sticky-next-section">
-          <button 
-            className="next-btn-enhanced"
-            disabled={booking.region === 'LA' && booking.passengers >= 4 && booking.luggage < 5}
-            onClick={() => setStep('customer')}
-          >
-            다음
-          </button>
-        </div>
+        <BottomCTA 
+          text="다음"
+          onClick={() => updateStep('passengers')}
+          disabled={!booking.outbound.route || (booking.isRoundTrip && !booking.return.route)}
+        />
       </div>
-    </div>
-  );
+    );
+  };
 
-  // 고객 정보 입력 화면
-  const CustomerStep = () => (
-    <div className="step-container">
-      <TopNav 
-        title="탑승자 정보"
-        onBack={() => setStep('passengers')}
-      />
-      <div className="step-content">
-      
-      <div className="customer-form">
-        {/* 개인정보 보안 안내 */}
-        <div className="privacy-assurance">
-          <div className="security-header">
-            <span className="security-icon">🔒</span>
-            <h3>개인정보는 안전하게 보호됩니다</h3>
-          </div>
-          <div className="security-features">
-            <div className="security-item">
-              <CheckCircle size={14} color="#00C851" />
-              <span>SSL 암호화 전송</span>
-            </div>
-            <div className="security-item">
-              <CheckCircle size={14} color="#00C851" />
-              <span>예약 목적만 사용</span>
-            </div>
-            <div className="security-item">
-              <CheckCircle size={14} color="#00C851" />
-              <span>제3자 제공 금지</span>
-            </div>
-          </div>
-        </div>
+  // 인원/짐 선택
+  const PassengersStep = () => {
+    if (currentStep !== 'passengers') return null;
 
-        <div className="form-notice">
-          <div className="notice-header">
-            <span>📞</span>
-            <h4>원활한 서비스를 위한 연락처 안내</h4>
+    const vehicleTypes = [
+      { type: '승용차', icon: '🚗', passengers: '1-3인', luggage: '1-3개' },
+      { type: 'SUV', icon: '🚙', passengers: '1-3인', luggage: '3-4개' },
+      { type: '미니밴', icon: '🚐', passengers: '1-6인', luggage: '5-10개' }
+    ];
+
+    const isLAWith4Plus = booking.region === 'LA' && booking.passengers >= 4 && booking.luggage < 5;
+    const isAnimated = shouldAnimate('passengers');
+
+    return (
+      <div className="step-page">
+        <TopNav 
+          title="인원 및 짐" 
+          onBack={() => updateStep('route')}
+        />
+        
+        <div className="step-content">
+          <div className={`section-header ${isAnimated ? 'fade-in' : ''}`}>
+            <h1 className="section-title">몇 분이서 이용하시나요?</h1>
+            <p className="section-subtitle">인원과 짐 개수에 따라 차량이 배정됩니다</p>
           </div>
-          <div className="notice-content">
-            <p>• 픽업 당일 기사님이 도착 후 개별 연락드립니다</p>
-            <p>• 미국 번호가 없으신 경우 카카오톡 연결된 한국 번호를 작성해주세요</p>
-            <p>• 카카오톡 ID는 대화명이 아닌 검색 가능한 ID를 입력해주세요</p>
+          
+          {/* 차량 타입 정보 */}
+          <div className={`vehicle-types ${isAnimated ? 'fade-in' : ''}`}>
+            {vehicleTypes.map((vehicle, index) => (
+              <div key={vehicle.type} className={`vehicle-type-card glass-card ${isAnimated ? 'slide-up' : ''}`} style={isAnimated ? {animationDelay: `${index * 0.1}s`} : {}}>
+                <span className="vehicle-icon">{vehicle.icon}</span>
+                <div className="vehicle-info">
+                  <h4>{vehicle.type}</h4>
+                  <p>{vehicle.passengers} · 캐리어 {vehicle.luggage}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* 편도 선택 */}
+          <div className={`selection-section ${isAnimated ? 'fade-in' : ''}`}>
+            <div className="section-label">
+              <span className="label-text">편도</span>
+            </div>
             
-            <div className="example-box">
-              <strong>올바른 예시:</strong>
-              <div className="examples">
-                <span className="correct">✓ 카카오톡 ID: kim85</span>
-                <span className="incorrect">✗ 이메일 주소: kim@gmail.com</span>
+            <div className="counter-grid">
+              <div className="counter-card glass-card">
+                <div className="counter-header">
+                  <Users size={20} />
+                  <h4>승객</h4>
+                </div>
+                <div className="counter-controls">
+                  <button 
+                    className="counter-btn hover-scale"
+                    onClick={() => updateBookingField('passengers', Math.max(1, booking.passengers - 1))}
+                    disabled={booking.passengers <= 1}
+                  >
+                    <Minus size={18} />
+                  </button>
+                  <span className="counter-value">{booking.passengers}명</span>
+                  <button 
+                    className="counter-btn hover-scale"
+                    onClick={() => updateBookingField('passengers', Math.min(6, booking.passengers + 1))}
+                    disabled={booking.passengers >= 6}
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+                {booking.passengers >= 5 && (
+                  <div className="counter-notice slide-up">
+                    <span>추가요금 +${booking.passengers === 5 ? 5 : 10}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="counter-card glass-card">
+                <div className="counter-header">
+                  <Luggage size={20} />
+                  <h4>캐리어</h4>
+                </div>
+                <div className="counter-controls">
+                  <button 
+                    className="counter-btn hover-scale"
+                    onClick={() => updateBookingField('luggage', Math.max(0, booking.luggage - 1))}
+                    disabled={booking.luggage <= 0}
+                  >
+                    <Minus size={18} />
+                  </button>
+                  <span className="counter-value">{booking.luggage}개</span>
+                  <button 
+                    className="counter-btn hover-scale"
+                    onClick={() => updateBookingField('luggage', Math.min(10, booking.luggage + 1))}
+                    disabled={booking.luggage >= 10}
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+                {booking.luggage >= 3 && (
+                  <div className="counter-notice slide-up">
+                    <span>추가요금 +${5 + (booking.luggage - 3) * 5}</span>
+                  </div>
+                )}
               </div>
             </div>
+            
+            {isLAWith4Plus && (
+              <div className={`alert-card glass-card warning ${isAnimated ? 'slide-up' : ''}`}>
+                <AlertCircle size={20} />
+                <span>LA지역 4인 이상은 짐 개수를 최소 5개로 선택해주세요</span>
+              </div>
+            )}
+          </div>
+          
+          {/* 왕복 선택 */}
+          {booking.isRoundTrip && (
+            <div className={`selection-section ${isAnimated ? 'fade-in' : ''}`}>
+              <div className="section-label">
+                <span className="label-text">왕복</span>
+              </div>
+              
+              <div className="counter-grid">
+                <div className="counter-card glass-card">
+                  <div className="counter-header">
+                    <Users size={20} />
+                    <h4>승객</h4>
+                  </div>
+                  <div className="counter-controls">
+                    <button 
+                      className="counter-btn hover-scale"
+                      onClick={() => updateBookingField('returnPassengers', Math.max(1, booking.returnPassengers - 1))}
+                      disabled={booking.returnPassengers <= 1}
+                    >
+                      <Minus size={18} />
+                    </button>
+                    <span className="counter-value">{booking.returnPassengers}명</span>
+                    <button 
+                      className="counter-btn hover-scale"
+                      onClick={() => updateBookingField('returnPassengers', Math.min(6, booking.returnPassengers + 1))}
+                      disabled={booking.returnPassengers >= 6}
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                  {booking.returnPassengers >= 5 && (
+                    <div className="counter-notice slide-up">
+                      <span>추가요금 +${booking.returnPassengers === 5 ? 5 : 10}</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="counter-card glass-card">
+                  <div className="counter-header">
+                    <Luggage size={20} />
+                    <h4>캐리어</h4>
+                  </div>
+                  <div className="counter-controls">
+                    <button 
+                      className="counter-btn hover-scale"
+                      onClick={() => updateBookingField('returnLuggage', Math.max(0, booking.returnLuggage - 1))}
+                      disabled={booking.returnLuggage <= 0}
+                    >
+                      <Minus size={18} />
+                    </button>
+                    <span className="counter-value">{booking.returnLuggage}개</span>
+                    <button 
+                      className="counter-btn hover-scale"
+                      onClick={() => updateBookingField('returnLuggage', Math.min(10, booking.returnLuggage + 1))}
+                      disabled={booking.returnLuggage >= 10}
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                  {booking.returnLuggage >= 3 && (
+                    <div className="counter-notice slide-up">
+                      <span>추가요금 +${5 + (booking.returnLuggage - 3) * 5}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* 안내 정보 */}
+          <div className={`info-card glass-card ${isAnimated ? 'fade-in' : ''}`}>
+            <h4>짐 개수 안내</h4>
+            <ul className="info-list">
+              <li>캐리어는 크기 상관없이 1개로 계산</li>
+              <li>3단 이민가방, 대형 유모차, 골프백은 2개로 선택</li>
+              <li>핸드백, 백팩 등 소형 가방은 무료</li>
+              {booking.region === 'LA' && (
+                <li className="highlight">LA지역 4인 이상은 반드시 짐 5개 이상 선택</li>
+              )}
+            </ul>
           </div>
         </div>
         
-        <div className="form-fields">
-          <div className="form-group">
-            <label>이름 (한글) *</label>
-            <input 
-              type="text"
-              value={booking.customer.name}
-              onChange={(e) => setBooking(prev => ({ 
-                ...prev, 
-                customer: { ...prev.customer, name: e.target.value }
-              }))}
-              placeholder="홍길동"
-            />
+        <BottomCTA 
+          text="다음"
+          onClick={() => updateStep('customer')}
+          disabled={isLAWith4Plus}
+        />
+      </div>
+    );
+  };
+
+  // 고객 정보
+  const CustomerStep = () => {
+    if (currentStep !== 'customer') return null;
+
+    const isAnimated = shouldAnimate('customer');
+
+    return (
+      <div className="step-page">
+        <TopNav 
+          title="탑승자 정보" 
+          onBack={() => updateStep('passengers')}
+        />
+        
+        <div className="step-content">
+          <div className={`section-header ${isAnimated ? 'fade-in' : ''}`}>
+            <h1 className="section-title">탑승자 정보를 입력해주세요</h1>
+            <p className="section-subtitle">원활한 픽업을 위해 정확한 정보가 필요합니다</p>
           </div>
           
-          <div className="form-group">
-            <label>전화번호 *</label>
-            <input 
-              type="tel"
-              value={booking.customer.phone}
-              onChange={(e) => setBooking(prev => ({ 
-                ...prev, 
-                customer: { ...prev.customer, phone: e.target.value }
-              }))}
-              placeholder="+1-555-1234 또는 010-1234-5678"
-            />
+          <div className={`security-badge glass-card ${isAnimated ? 'slide-up' : ''}`}>
+            <Shield size={20} />
+            <span>개인정보는 안전하게 보호됩니다</span>
           </div>
           
-          <div className="form-group">
-            <label>카카오톡 ID *</label>
-            <input 
-              type="text"
-              value={booking.customer.kakaoId}
-              onChange={(e) => setBooking(prev => ({ 
-                ...prev, 
-                customer: { ...prev.customer, kakaoId: e.target.value }
-              }))}
-              placeholder="kim85 (대화명이 아닌 ID)"
-            />
+          <form className={`modern-form ${isAnimated ? 'fade-in' : ''}`}>
+            <div className="form-group">
+              <label className="form-label">
+                <User size={16} />
+                <span>이름 (한글)</span>
+              </label>
+              <input 
+                type="text"
+                className="form-input"
+                value={booking.customer.name}
+                onChange={(e) => updateBookingField('customer.name', e.target.value)}
+                placeholder="홍길동"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">
+                <Phone size={16} />
+                <span>전화번호</span>
+              </label>
+              <input 
+                type="tel"
+                className="form-input"
+                value={booking.customer.phone}
+                onChange={(e) => updateBookingField('customer.phone', e.target.value)}
+                placeholder="미국 번호 또는 한국 번호"
+              />
+              <p className="form-hint">미국 번호가 없으면 카카오톡 연결된 한국 번호를 입력해주세요</p>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">
+                <MessageCircle size={16} />
+                <span>카카오톡 ID</span>
+              </label>
+              <input 
+                type="text"
+                className="form-input"
+                value={booking.customer.kakaoId}
+                onChange={(e) => updateBookingField('customer.kakaoId', e.target.value)}
+                placeholder="검색 가능한 카카오톡 ID"
+              />
+              <p className="form-hint">대화명이 아닌 검색 가능한 ID를 입력해주세요</p>
+              <p className="form-hint">예) kim@gmail.com(X) kim85(O)</p>
+            </div>
+          </form>
+          
+          <div className={`info-card glass-card ${isAnimated ? 'fade-in' : ''}`}>
+            <h4>픽업 당일 안내</h4>
+            <ul className="info-list">
+              <li>요청하신 픽업 시간에 도착 후 기사님이 연락드립니다</li>
+              <li>카카오톡 검색 허용 필수</li>
+              <li>연락이 안 되어 못 모시는 경우 회사 책임 없음</li>
+            </ul>
           </div>
         </div>
-        </div>
-      
-      <div className="bottom-section">
-        <button 
-          className="next-btn"
-          disabled={!booking.customer.name || !booking.customer.phone || !booking.customer.kakaoId}
+        
+        <BottomCTA 
+          text="다음"
           onClick={() => {
-            // 공항 정보가 필요한지 체크
             const needsAirportInfo = 
               booking.outbound.route?.departure_is_airport || 
               booking.outbound.route?.arrival_is_airport ||
               (booking.isRoundTrip && (booking.return.route?.departure_is_airport || booking.return.route?.arrival_is_airport));
             
-            setStep(needsAirportInfo ? 'airport' : 'options');
+            updateStep(needsAirportInfo ? 'airport' : 'options');
           }}
-        >
-          다음
-        </button>
+          disabled={!booking.customer.name || !booking.customer.phone || !booking.customer.kakaoId}
+        />
       </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
-  // 공항 정보 입력 화면 (공항 경로가 있을 때만)
-  const AirportStep = () => (
-    <div className="step-container">
-      <TopNav 
-        title="픽업을 위한 추가정보"
-        onBack={() => setStep('customer')}
-      />
-      <div className="step-content">
-      
-      <div className="airport-form">
-        <div className="form-notice">
-          <p>정확한 정보기입을 위해 작성시 안내되는 내용을 꼭 확인해 주세요.</p>
-          
-          <div className="notice-section">
-            <h4>비행기 도착시간</h4>
-            <ul>
-              <li>공항 픽업의 경우 비행편명을 조회하여 실제 비행기 도착시간부터 [국제선:1시간30분], [국내선:1시간] 무료대기이며, 이후 30분당 $15 추가됩니다.</li>
-              <li>주의 24시간 형식! 밤 9시 55분 도착 비행기는 21:50 선택(반내림)</li>
-              <li>시간 선택시 24시간제입니다. (예시) 4PM은 16:00선택해야 하며 04:00 선택시 새벽 4시에 배차되어 노쇼시 현장결제금 전액이 자동 결제되니 주의해 주세요.</li>
-              <li>탑승 4시간 전의 긴급 예약일 경우 배차 가능 차량 여부에 따라 대기 시간 발생 및 예약이 취소 될 수 있습니다.</li>
-            </ul>
-          </div>
-          
-          <div className="notice-section">
-            <h4>공항/편명</h4>
-            <ul>
-              <li>편명을 실시간 조회하여 실제 도착시간을 확인합니다.</li>
-              <li>조회 안되는 경우 픽업이 지연되니 정확히 기입해 주세요.</li>
-            </ul>
-          </div>
-        </div>
-        
-        {/* 편도 공항 정보 */}
-        {(booking.outbound.route?.departure_is_airport || booking.outbound.route?.arrival_is_airport) && (
-          <div className="airport-section">
-            <h4>편도 공항 정보</h4>
-            <div className="form-fields">
-              <div className="form-group">
-                <label>픽업 요청날짜 *</label>
-                <input 
-                  type="date"
-                  value={booking.airport.pickupDate}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    airport: { ...prev.airport, pickupDate: e.target.value }
-                  }))}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>비행기 도착시간 *</label>
-                <input 
-                  type="time"
-                  value={booking.airport.arrivalTime}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    airport: { ...prev.airport, arrivalTime: e.target.value }
-                  }))}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>공항/편명 *</label>
-                <input 
-                  type="text"
-                  value={booking.airport.flightNumber}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    airport: { ...prev.airport, flightNumber: e.target.value }
-                  }))}
-                  placeholder="예: KE001, AA123"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>목적지 상세 주소</label>
-                <textarea 
-                  value={booking.airport.address}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    airport: { ...prev.airport, address: e.target.value }
-                  }))}
-                  placeholder="상세 주소를 입력해주세요"
-                  rows={3}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* 왕복 공항 정보 */}
-        {booking.isRoundTrip && (booking.return.route?.departure_is_airport || booking.return.route?.arrival_is_airport) && (
-          <div className="airport-section">
-            <h4>왕복 공항 정보</h4>
-            <div className="form-fields">
-              <div className="form-group">
-                <label>픽업 요청날짜 *</label>
-                <input 
-                  type="date"
-                  value={booking.returnAirport.pickupDate}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    returnAirport: { ...prev.returnAirport, pickupDate: e.target.value }
-                  }))}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>비행기 도착시간 *</label>
-                <input 
-                  type="time"
-                  value={booking.returnAirport.arrivalTime}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    returnAirport: { ...prev.returnAirport, arrivalTime: e.target.value }
-                  }))}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>공항/편명 *</label>
-                <input 
-                  type="text"
-                  value={booking.returnAirport.flightNumber}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    returnAirport: { ...prev.returnAirport, flightNumber: e.target.value }
-                  }))}
-                  placeholder="예: KE001, AA123"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>목적지 상세 주소</label>
-                <textarea 
-                  value={booking.returnAirport.address}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    returnAirport: { ...prev.returnAirport, address: e.target.value }
-                  }))}
-                  placeholder="상세 주소를 입력해주세요"
-                  rows={3}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <button 
-          className="next-btn"
-          onClick={() => setStep('options')}
-        >
-          다음
-        </button>
-        </div>
-      </div>
-    </div>
-  );
+  // 공항 정보
+  const AirportStep = () => {
+    if (currentStep !== 'airport') return null;
 
-  // 옵션 선택 화면
-  const OptionsStep = () => {
-    // 카시트 타입 변경 핸들러
-    const handleCarSeatTypeChange = (value) => {
-      setBooking(prev => ({ 
-        ...prev, 
-        options: { ...prev.options, carSeatType: value }
-      }));
-    };
+    const isAnimated = shouldAnimate('airport');
 
     return (
-      <div className="step-container">
+      <div className="step-page">
         <TopNav 
-          title="옵션 상품"
+          title="픽업 정보" 
+          onBack={() => updateStep('customer')}
+        />
+        
+        <div className="step-content">
+          <div className={`section-header ${isAnimated ? 'fade-in' : ''}`}>
+            <h1 className="section-title">픽업 정보를 입력해주세요</h1>
+            <p className="section-subtitle">정확한 픽업을 위해 필요합니다</p>
+          </div>
+          
+          {/* 편도 공항 정보 */}
+          {(booking.outbound.route?.departure_is_airport || booking.outbound.route?.arrival_is_airport) && (
+            <div className={`airport-section ${isAnimated ? 'fade-in' : ''}`}>
+              <div className="section-label">
+                <span className="label-text">편도 픽업 정보</span>
+              </div>
+              
+              <form className="modern-form">
+                <div className="form-group">
+                  <label className="form-label">
+                    <Calendar size={16} />
+                    <span>픽업 날짜</span>
+                  </label>
+                  <input 
+                    type="date"
+                    className="form-input"
+                    value={booking.airport.pickupDate}
+                    onChange={(e) => updateBookingField('airport.pickupDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  {(booking.outbound.route?.departure_is_airport || booking.outbound.route?.arrival_is_airport) && (
+                    <p className="form-hint">예) 1월 2일 23:55 도착 비행기는 1월 2일 선택</p>
+                  )}
+                </div>
+                
+                {(booking.outbound.route?.departure_is_airport || booking.outbound.route?.arrival_is_airport) && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Clock size={16} />
+                        <span>비행기 도착시간</span>
+                      </label>
+                      <input 
+                        type="time"
+                        className="form-input"
+                        value={booking.airport.arrivalTime}
+                        onChange={(e) => updateBookingField('airport.arrivalTime', e.target.value)}
+                      />
+                      <p className="form-hint">24시간 형식 (오후 9시 55분 = 21:55)</p>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Plane size={16} />
+                        <span>항공편명</span>
+                      </label>
+                      <input 
+                        type="text"
+                        className="form-input"
+                        value={booking.airport.flightNumber}
+                        onChange={(e) => updateBookingField('airport.flightNumber', e.target.value)}
+                        placeholder="예: KE085, AA100"
+                      />
+                      <p className="form-hint">정확한 편명 입력 (조회용)</p>
+                    </div>
+                  </>
+                )}
+                
+                <div className="form-group">
+                  <label className="form-label">
+                    <MapPin size={16} />
+                    <span>{(booking.outbound.route?.departure_is_airport || booking.outbound.route?.arrival_is_airport) ? '목적지 상세 주소' : '상세 주소'}</span>
+                  </label>
+                  <textarea 
+                    className="form-textarea"
+                    value={booking.airport.address}
+                    onChange={(e) => updateBookingField('airport.address', e.target.value)}
+                    placeholder={(booking.outbound.route?.departure_is_airport || booking.outbound.route?.arrival_is_airport) ? '호텔명, 건물명 등 상세 주소' : '픽업/도착지 상세 주소'}
+                    rows={3}
+                  />
+                </div>
+              </form>
+              
+              {(booking.outbound.route?.departure_is_airport || booking.outbound.route?.arrival_is_airport) && (
+                <div className="info-card glass-card">
+                  <h4>무료 대기시간</h4>
+                  <ul className="info-list">
+                    <li>국제선: 도착 후 1시간 30분</li>
+                    <li>국내선: 도착 후 1시간</li>
+                    <li>추가 대기: 30분당 $15</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* 왕복 공항 정보 */}
+          {booking.isRoundTrip && (booking.return.route?.departure_is_airport || booking.return.route?.arrival_is_airport) && (
+            <div className={`airport-section ${isAnimated ? 'fade-in' : ''}`}>
+              <div className="section-label">
+                <span className="label-text">왕복 픽업 정보</span>
+              </div>
+              
+              <form className="modern-form">
+                <div className="form-group">
+                  <label className="form-label">
+                    <Calendar size={16} />
+                    <span>픽업 날짜</span>
+                  </label>
+                  <input 
+                    type="date"
+                    className="form-input"
+                    value={booking.returnAirport.pickupDate}
+                    onChange={(e) => updateBookingField('returnAirport.pickupDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  {(booking.return.route?.departure_is_airport || booking.return.route?.arrival_is_airport) && (
+                    <p className="form-hint">예) 1월 2일 23:55 도착 비행기는 1월 2일 선택</p>
+                  )}
+                </div>
+                
+                {(booking.return.route?.departure_is_airport || booking.return.route?.arrival_is_airport) && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Clock size={16} />
+                        <span>비행기 도착시간</span>
+                      </label>
+                      <input 
+                        type="time"
+                        className="form-input"
+                        value={booking.returnAirport.arrivalTime}
+                        onChange={(e) => updateBookingField('returnAirport.arrivalTime', e.target.value)}
+                      />
+                      <p className="form-hint">24시간 형식 (오후 9시 55분 = 21:55)</p>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label className="form-label">
+                        <Plane size={16} />
+                        <span>항공편명</span>
+                      </label>
+                      <input 
+                        type="text"
+                        className="form-input"
+                        value={booking.returnAirport.flightNumber}
+                        onChange={(e) => updateBookingField('returnAirport.flightNumber', e.target.value)}
+                        placeholder="예: KE085, AA100"
+                      />
+                      <p className="form-hint">정확한 편명 입력 (조회용)</p>
+                    </div>
+                  </>
+                )}
+                
+                <div className="form-group">
+                  <label className="form-label">
+                    <MapPin size={16} />
+                    <span>{(booking.return.route?.departure_is_airport || booking.return.route?.arrival_is_airport) ? '목적지 상세 주소' : '상세 주소'}</span>
+                  </label>
+                  <textarea 
+                    className="form-textarea"
+                    value={booking.returnAirport.address}
+                    onChange={(e) => updateBookingField('returnAirport.address', e.target.value)}
+                    placeholder={(booking.return.route?.departure_is_airport || booking.return.route?.arrival_is_airport) ? '호텔명, 건물명 등 상세 주소' : '픽업/도착지 상세 주소'}
+                    rows={3}
+                  />
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+        
+        <BottomCTA 
+          text="다음"
+          onClick={() => updateStep('options')}
+        />
+      </div>
+    );
+  };
+
+  // 옵션 선택
+  const OptionsStep = () => {
+    if (currentStep !== 'options') return null;
+
+    const isAnimated = shouldAnimate('options');
+
+    return (
+      <div className="step-page">
+        <TopNav 
+          title="추가 옵션" 
           onBack={() => {
             const needsAirportInfo = 
               booking.outbound.route?.departure_is_airport || 
               booking.outbound.route?.arrival_is_airport ||
               (booking.isRoundTrip && (booking.return.route?.departure_is_airport || booking.return.route?.arrival_is_airport));
             
-            setStep(needsAirportInfo ? 'airport' : 'customer');
+            updateStep(needsAirportInfo ? 'airport' : 'customer');
           }}
         />
-        <div className="step-content">
         
-        <div className="options-form">
-          <div className="option-cards">
+        <div className="step-content">
+          <div className={`section-header ${isAnimated ? 'fade-in' : ''}`}>
+            <h1 className="section-title">필요한 옵션이 있으신가요?</h1>
+            <p className="section-subtitle">여행을 더 편리하게 만들어드립니다</p>
+          </div>
+          
+          <div className="options-list">
             {/* 유심 옵션 */}
-            <div className={`option-card ${booking.options.sim ? 'selected' : ''}`}>
-              <div className="option-header">
-                <div className="option-icon">
+            <div className={`option-item glass-card ${booking.options.sim ? 'active' : ''} hover-lift`}>
+              <div className="option-main" onClick={() => updateBookingField('options.sim', !booking.options.sim)}>
+                <div className="option-icon-wrapper">
                   <Smartphone size={24} />
                 </div>
-                <div className="option-info">
-                  <h4>유심 (+$32)</h4>
-                  <p>사전결제: 개통하여 택시에서 전달해 드립니다</p>
+                <div className="option-content">
+                  <div className="option-header">
+                    <h4>미국 유심</h4>
+                    <span className="option-price">+$32</span>
+                  </div>
+                  <p className="option-desc">데이터 무제한 · 국제전화 무제한</p>
                 </div>
-                <label className="toggle">
+                <div className="option-toggle">
                   <input 
                     type="checkbox"
                     checked={booking.options.sim}
-                    onChange={(e) => setBooking(prev => ({ 
-                      ...prev, 
-                      options: { ...prev.options, sim: e.target.checked }
-                    }))}
+                    onChange={() => {}}
                   />
-                  <span className="toggle-slider"></span>
-                </label>
+                  <span className="toggle-track"></span>
+                </div>
               </div>
               
               {booking.options.sim && (
-                <div className="option-details">
-                  <h5>유심 정보</h5>
-                  <ul>
-                    <li>미국전역 사용 / 국제전화 무제한</li>
-                    <li>데이터 무제한 (12gb LTE 이후 2/3g 무제한)</li>
-                    <li>첫 택시탑승일 수령</li>
-                  </ul>
-                  <div className="device-compatibility">
-                    <p><strong>사용가능기종:</strong> 아이폰 8 이상 상위 기종, 삼성 갤럭시S,노트,Z플립, Z폴드</p>
-                    <p><strong>사용불가능 기종:</strong> 삼성 겔럭시A, J, LG 전기종, 샤오미등 해외브렌드</p>
+                <div className={`option-details ${isAnimated ? 'slide-down' : ''}`}>
+                  <div className="detail-list">
+                    <div className="detail-item">
+                      <Check size={16} />
+                      <span>미국 전역 사용 가능</span>
+                    </div>
+                    <div className="detail-item">
+                      <Check size={16} />
+                      <span>12GB LTE 후 무제한</span>
+                    </div>
+                    <div className="detail-item">
+                      <Check size={16} />
+                      <span>첫 택시 탑승일 수령</span>
+                    </div>
+                    <div className="detail-item">
+                      <Check size={16} />
+                      <span>아이폰 8 이상, 갤럭시 S/노트/Z 시리즈</span>
+                    </div>
                   </div>
+                  <p className="option-note">
+                    <Info size={14} />
+                    <span>갤럭시 A/J, LG, 샤오미 등 사용 불가</span>
+                  </p>
                 </div>
               )}
             </div>
             
             {/* 카시트 옵션 */}
-            <div className={`option-card ${booking.options.carSeat ? 'selected' : ''}`}>
-              <div className="option-header">
-                <div className="option-icon">
+            <div className={`option-item glass-card ${booking.options.carSeat ? 'active' : ''} hover-lift`}>
+              <div className="option-main" onClick={() => updateBookingField('options.carSeat', !booking.options.carSeat)}>
+                <div className="option-icon-wrapper">
                   <Baby size={24} />
                 </div>
-                <div className="option-info">
-                  <h4>카시트 (+$10)</h4>
-                  <p>현장 추가결제: 차량에 미리 준비됩니다</p>
+                <div className="option-content">
+                  <div className="option-header">
+                    <h4>카시트</h4>
+                    <span className="option-price">+$10 (현장결제)</span>
+                  </div>
+                  <p className="option-desc">안전한 어린이 탑승</p>
                 </div>
-                <label className="toggle">
+                <div className="option-toggle">
                   <input 
                     type="checkbox"
                     checked={booking.options.carSeat}
-                    onChange={(e) => setBooking(prev => ({ 
-                      ...prev, 
-                      options: { ...prev.options, carSeat: e.target.checked }
-                    }))}
+                    onChange={() => {}}
                   />
-                  <span className="toggle-slider"></span>
-                </label>
+                  <span className="toggle-track"></span>
+                </div>
               </div>
               
               {booking.options.carSeat && (
-                <div className="option-details">
-                  <h5>카시트 종류</h5>
+                <div className={`option-details ${isAnimated ? 'slide-down' : ''}`}>
                   <div className="car-seat-types">
-                    <label className="radio-option">
+                    <label className="seat-type-option">
                       <input 
                         type="radio"
                         name="carSeatType"
                         value="infant"
                         checked={booking.options.carSeatType === 'infant'}
-                        onChange={() => handleCarSeatTypeChange('infant')}
+                        onChange={() => updateBookingField('options.carSeatType', 'infant')}
                         disabled={booking.region !== 'LA'}
                       />
-                      <span>영유아: 1세 미만 {booking.region !== 'LA' ? '(LA지역만)' : ''}</span>
+                      <div className="seat-type-content">
+                        <span className="seat-type-name">영유아용</span>
+                        <span className="seat-type-desc">1세 미만 {booking.region !== 'LA' && '(LA만 가능)'}</span>
+                      </div>
                     </label>
-                    <label className="radio-option">
+                    
+                    <label className="seat-type-option">
                       <input 
                         type="radio"
                         name="carSeatType"
                         value="regular"
                         checked={booking.options.carSeatType === 'regular'}
-                        onChange={() => handleCarSeatTypeChange('regular')}
+                        onChange={() => updateBookingField('options.carSeatType', 'regular')}
                       />
-                      <span>일반: 1-6세 미만</span>
+                      <div className="seat-type-content">
+                        <span className="seat-type-name">일반</span>
+                        <span className="seat-type-desc">1-6세</span>
+                      </div>
                     </label>
-                    <label className="radio-option">
+                    
+                    <label className="seat-type-option">
                       <input 
                         type="radio"
                         name="carSeatType"
                         value="booster"
                         checked={booking.options.carSeatType === 'booster'}
-                        onChange={() => handleCarSeatTypeChange('booster')}
+                        onChange={() => updateBookingField('options.carSeatType', 'booster')}
                       />
-                      <span>부스터: 6세 이상</span>
+                      <div className="seat-type-content">
+                        <span className="seat-type-name">부스터</span>
+                        <span className="seat-type-desc">6세 이상</span>
+                      </div>
                     </label>
                   </div>
-                  
-                  <div className="car-seat-notes">
-                    <p>• 카시트는 한 차량당 1개까지만 가능</p>
-                    <p>• 비용은 택시요금에 포함되지 않으니 택시이용시 기사님께 따로 지불해 주세요</p>
-                    <p>• 뉴저지 출발 구간 이동은 카시트 추가가 불가합니다</p>
-                    <p>• 왕복 예약 카시트 추가 시 자동으로 왕복 모두 현장결제금 $10 추가됩니다</p>
-                    <p><strong>현장 현금결제: ${booking.isRoundTrip ? 20 : 10}</strong></p>
-                  </div>
+                  <p className="option-note">
+                    <Info size={14} />
+                    <span>차량당 1개만 가능 · 왕복시 현장결제 ${booking.isRoundTrip ? 20 : 10}</span>
+                  </p>
                 </div>
               )}
             </div>
           </div>
-          
-          <button 
-            className="next-btn"
-            onClick={() => setStep('payment')}
-          >
-            다음
-          </button>
-          </div>
         </div>
+        
+        <BottomCTA 
+          text="다음"
+          onClick={() => updateStep('payment')}
+        />
       </div>
     );
   };
 
-  // 결제 화면
+  // 결제
   const PaymentStep = () => {
-    const price = calculatePrice();
-    
-    return (
-      <div className="step-container">
-        <TopNav 
-          title="결제"
-          onBack={() => setStep('options')}
-        />
-        <div className="step-content">
-        
-        <div className="payment-form">
-          {/* 결제 보안 안내 */}
-          <div className="security-banner">
-            <div className="security-content">
-              <span className="security-icon">🔒</span>
-              <div>
-                <div className="security-title">안전한 결제</div>
-                <div className="security-desc">256-bit SSL 암호화 보호</div>
-              </div>
-            </div>
-          </div>
+    if (currentStep !== 'payment') return null;
 
-          {/* 주문 요약 - 개선된 구조 */}
-          <div className="order-summary-card">
-            <div className="card-header">
-              <h3>주문 요약</h3>
-              <div className="trust-badge">
-                <CheckCircle size={14} />
-                <span>투명한 요금</span>
-              </div>
-            </div>
-            
-            <div className="price-table">
+    const price = calculatePrice();
+    const isAnimated = shouldAnimate('payment');
+
+    return (
+      <div className="step-page">
+        <TopNav 
+          title="결제" 
+          onBack={() => updateStep('options')}
+        />
+        
+        <div className="step-content">
+          <div className={`section-header ${isAnimated ? 'fade-in' : ''}`}>
+            <h1 className="section-title">결제 정보를 입력해주세요</h1>
+            <p className="section-subtitle">안전하고 간편한 결제</p>
+          </div>
+          
+          {/* 주문 요약 */}
+          <div className={`order-summary-card glass-card ${isAnimated ? 'fade-in' : ''}`}>
+            <h3>주문 요약</h3>
+            <div className="summary-items">
               {price.details.map((item, index) => (
-                <div key={index} className="price-row">
-                  <span className="price-label">{item.label}</span>
-                  <span className="price-value">
-                    {item.amount > 0 ? `${item.amount}` : item.amount < 0 ? `-${Math.abs(item.amount)}` : ''}
-                    {item.note && <span className="price-note">({item.note})</span>}
+                <div key={index} className={`summary-item ${item.type === 'discount' ? 'discount' : ''}`}>
+                  <span className="item-label">{item.label}</span>
+                  <span className="item-amount">
+                    {item.amount > 0 ? `$${item.amount}` : item.amount < 0 ? `-$${Math.abs(item.amount)}` : ''}
+                    {item.note && <span className="item-note"> ({item.note})</span>}
                   </span>
                 </div>
               ))}
-              <div className="price-divider"></div>
-              <div className="price-row total">
-                <span className="price-label">총 요금</span>
-                <span className="price-value total-amount">${price.total}</span>
-              </div>
+            </div>
+            <div className="summary-total">
+              <span>총 요금</span>
+              <span className="total-amount">${price.total}</span>
             </div>
           </div>
           
-          {/* 결제 방법 선택 - RadioCard 구조 */}
-          <div className="payment-section">
-            <div className="section-header">
-              <h3>결제 방법</h3>
-              <p>편리한 결제 방법을 선택해주세요</p>
+          {/* 결제 방법 */}
+          <div className={`payment-methods ${isAnimated ? 'fade-in' : ''}`}>
+            <h3>결제 방법 선택</h3>
+            
+            <label className={`payment-method-card glass-card ${booking.payment.method === 'deposit' ? 'active' : ''}`}>
+              <input 
+                type="radio"
+                name="paymentMethod"
+                value="deposit"
+                checked={booking.payment.method === 'deposit'}
+                onChange={(e) => updateBookingField('payment.method', e.target.value)}
+              />
+              <div className="method-content">
+                <div className="method-header">
+                  <div className="method-icon">
+                    <DollarSign size={24} />
+                  </div>
+                  <div className="method-info">
+                    <h4>예약금 결제</h4>
+                    <span className="recommend-badge pulse">추천</span>
+                  </div>
+                </div>
+                <p className="method-desc">현장에서 잔액 결제 · 수수료 없음</p>
+                <div className="method-price">
+                  <span className="price-value">${price.reservationFee}</span>
+                </div>
+              </div>
+            </label>
+            
+            <label className={`payment-method-card glass-card ${booking.payment.method === 'full' ? 'active' : ''}`}>
+              <input 
+                type="radio"
+                name="paymentMethod"
+                value="full"
+                checked={booking.payment.method === 'full'}
+                onChange={(e) => updateBookingField('payment.method', e.target.value)}
+              />
+              <div className="method-content">
+                <div className="method-header">
+                  <div className="method-icon">
+                    <CreditCard size={24} />
+                  </div>
+                  <div className="method-info">
+                    <h4>전액 결제</h4>
+                  </div>
+                </div>
+                <p className="method-desc">일시불 결제 · 수수료 20% 포함</p>
+                <div className="method-price">
+                  <span className="price-value">${price.fullPaymentFee}</span>
+                </div>
+              </div>
+            </label>
+          </div>
+          
+          {/* 결제자 정보 */}
+          <div className={`billing-section ${isAnimated ? 'fade-in' : ''}`}>
+            <h3>결제자 정보</h3>
+            
+            <form className="modern-form">
+              <div className="form-group">
+                <label className="form-label">
+                  <User size={16} />
+                  <span>이름 (한글)</span>
+                </label>
+                <input 
+                  type="text"
+                  className="form-input"
+                  value={booking.payment.billing.name}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateBookingField('payment.billing.name', e.target.value);
+                  }}
+                  placeholder="결제자 이름"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">
+                  <span>회사명 (선택)</span>
+                </label>
+                <input 
+                  type="text"
+                  className="form-input"
+                  value={booking.payment.billing.company}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateBookingField('payment.billing.company', e.target.value);
+                  }}
+                  placeholder="회사명"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">
+                  <span>이메일</span>
+                </label>
+                <input 
+                  type="email"
+                  className="form-input"
+                  value={booking.payment.billing.email}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateBookingField('payment.billing.email', e.target.value);
+                  }}
+                  placeholder="예약 확인서를 받으실 이메일"
+                />
+                <p className="form-hint">daum/hanmail/yahoo 계정은 전송 불가할 수 있습니다</p>
+              </div>
+            </form>
+          </div>
+          
+          {/* 카드 정보 */}
+          <div className={`card-section ${isAnimated ? 'fade-in' : ''}`}>
+            <div className="card-header">
+              <h3>카드 정보</h3>
+              <div className="security-badge">
+                <Shield size={16} />
+                <span>Stripe 보안 결제</span>
+              </div>
             </div>
             
-            <div className="radio-card-group">
-              {/* 예약금 결제 카드 */}
-              <label className={`radio-card recommended ${booking.payment.method === 'deposit' ? 'selected' : ''}`}>
-                <div className="card-badge">추천</div>
-                <input 
-                  type="radio"
-                  name="paymentMethod"
-                  value="deposit"
-                  checked={booking.payment.method === 'deposit'}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    payment: { ...prev.payment, method: e.target.value }
-                  }))}
-                />
-                <div className="card-content">
-                  <div className="card-main">
-                    <div className="card-title">
-                      예약금 결제
-                      <span className="no-fee-badge">수수료 없음</span>
-                    </div>
-                    <div className="card-desc">현장에서 잔액 결제. 추가 수수료 없음</div>
-                    <div className="card-price">${price.reservationFee}</div>
-                  </div>
-                  <div className="card-benefits">
-                    <span className="benefit-item">✓ 추가 수수료 없음</span>
-                    <span className="benefit-item">✓ 현장 결제 유연성</span>
-                  </div>
-                </div>
-              </label>
-              
-              {/* 일시불 결제 카드 */}
-              <label className={`radio-card ${booking.payment.method === 'full' ? 'selected' : ''}`}>
-                <input 
-                  type="radio"
-                  name="paymentMethod"
-                  value="full"
-                  checked={booking.payment.method === 'full'}
-                  onChange={(e) => setBooking(prev => ({ 
-                    ...prev, 
-                    payment: { ...prev.payment, method: e.target.value }
-                  }))}
-                />
-                <div className="card-content">
-                  <div className="card-main">
-                    <div className="card-title">
-                      일시불 결제
-                      <span className="fee-badge">20% 수수료 포함</span>
-                    </div>
-                    <div className="card-desc">현장에서 결제 불필요. 수수료 포함</div>
-                    <div className="card-price">
-                      ${price.fullPaymentFee}
-                      <span className="sub-price">(수수료 ${price.fullPaymentFee - price.total})</span>
-                    </div>
-                  </div>
-                  <div className="card-benefits">
-                    <span className="benefit-item">✓ 현장 결제 불필요</span>
-                    <span className="benefit-item">✓ 예약 완전 확정</span>
-                  </div>
-                </div>
-              </label>
-            </div>
-          </div>
-          
-          {/* 결제 정보 입력 - 개선된 폼 */}
-          <div className="form-section">
-            <h3>결제자 정보</h3>
-            <div className="form-card">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>이름 (한글) *</label>
-                  <input 
-                    type="text"
-                    value={booking.payment.billing.name}
-                    onChange={(e) => setBooking(prev => ({ 
-                      ...prev, 
-                      payment: { 
-                        ...prev.payment, 
-                        billing: { ...prev.payment.billing, name: e.target.value }
-                      }
-                    }))}
-                    placeholder="홍길동"
-                    className="form-input"
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label>회사명 (선택)</label>
-                  <input 
-                    type="text"
-                    value={booking.payment.billing.company}
-                    onChange={(e) => setBooking(prev => ({ 
-                      ...prev, 
-                      payment: { 
-                        ...prev.payment, 
-                        billing: { ...prev.payment.billing, company: e.target.value }
-                      }
-                    }))}
-                    placeholder="회사명을 입력하세요"
-                    className="form-input optional"
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label>이메일 주소 *</label>
-                  <input 
-                    type="email"
-                    value={booking.payment.billing.email}
-                    onChange={(e) => setBooking(prev => ({ 
-                      ...prev, 
-                      payment: { 
-                        ...prev.payment, 
-                        billing: { ...prev.payment.billing, email: e.target.value }
-                      }
-                    }))}
-                    placeholder="example@gmail.com"
-                    className="form-input"
-                  />
-                  <div className="form-hint">
-                    예약 확정서를 받으실 이메일 주소입니다. 
-                    <button type="button" className="hint-toggle">자세히 보기</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* 약관 동의 - 간소화 */}
-          <div className="terms-section">
-            <div className="terms-card">
-              <div className="checkbox-group">
-                <label className="checkbox-item">
-                  <input type="checkbox" required />
-                  <span className="checkmark"></span>
-                  <span className="checkbox-text">
-                    <strong>[필수]</strong> 예약 정보는 이메일로 발송됩니다. 반드시 확인해 주세요.
-                  </span>
+            <form className="modern-form">
+              <div className="form-group">
+                <label className="form-label">
+                  <CreditCard size={16} />
+                  <span>카드 번호</span>
                 </label>
+                <input 
+                  type="text"
+                  className="form-input"
+                  value={booking.payment.card.number}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    updateBookingField('payment.card.number', e.target.value);
+                  }}
+                  placeholder="1234 5678 9012 3456"
+                  maxLength="19"
+                />
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">
+                    <span>유효기간</span>
+                  </label>
+                  <input 
+                    type="text"
+                    className="form-input"
+                    value={booking.payment.card.expiry}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateBookingField('payment.card.expiry', e.target.value);
+                    }}
+                    placeholder="MM/YY"
+                    maxLength="5"
+                  />
+                </div>
                 
-                <label className="checkbox-item">
-                  <input type="checkbox" required />
-                  <span className="checkmark"></span>
-                  <span className="checkbox-text">
-                    <strong>[필수]</strong> 이용약관 및 개인정보 수집에 동의합니다.
-                    <button type="button" className="terms-link">약관 보기</button>
-                  </span>
-                </label>
+                <div className="form-group">
+                  <label className="form-label">
+                    <span>CVC</span>
+                  </label>
+                  <input 
+                    type="text"
+                    className="form-input"
+                    value={booking.payment.card.cvc}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      updateBookingField('payment.card.cvc', e.target.value);
+                    }}
+                    placeholder="123"
+                    maxLength="4"
+                  />
+                </div>
               </div>
-            </div>
+            </form>
           </div>
+          
+          {/* 약관 동의 */}
+          <div className={`terms-section ${isAnimated ? 'fade-in' : ''}`}>
+            <label className="checkbox-label">
+              <input type="checkbox" required />
+              <span className="checkbox-custom"></span>
+              <span className="checkbox-text">예약 정보를 이메일로 발송합니다. 반드시 확인해주세요.</span>
+            </label>
+            
+            <label className="checkbox-label">
+              <input type="checkbox" required />
+              <span className="checkbox-custom"></span>
+              <span className="checkbox-text">이용약관 및 개인정보 수집에 동의합니다.</span>
+            </label>
+            
+            <p className="terms-notice">
+              이메일을 확인하지 않아 발생하는 일은 옐로라이드에서 책임지지 않습니다.
+            </p>
           </div>
         </div>
         
-        {/* Sticky Footer */}
-        <div className="payment-footer">
-          <div className="footer-content">
-            <div className="total-summary">
-              <span className="total-label">총 {price.total > price.finalAmount ? '결제' : ''}금액</span>
-              <span className="total-price">${price.finalAmount}</span>
-            </div>
-            <button 
-              className="payment-cta"
-              disabled={!booking.payment.billing.name || !booking.payment.billing.email}
-              onClick={async () => {
-                try {
-                  setLoading(true);
-                  
-                  // 예약 데이터 준비
-                  const bookingData = {
-                    serviceTypeCode: 'PREMIUM_TAXI',
-                    region: booking.region || 'NY',
-                    isRoundTrip: booking.isRoundTrip || false,
-                    trips: [
-                      {
-                        departure: booking.outbound.departure || '',
-                        arrival: booking.outbound.arrival || '',
-                        date: booking.airport.pickupDate || new Date().toISOString().split('T')[0],
-                        time: booking.airport.arrivalTime || '12:00',
-                        passengers: booking.passengers || 1,
-                        luggage: booking.luggage || 0
-                      }
-                    ],
-                    customerInfo: {
-                      name: booking.customer.name || '',
-                      phone: booking.customer.phone || '',
-                      email: booking.payment.billing.email || '',
-                      kakaoId: booking.customer.kakaoId || '',
-                      flightInfo: {
-                        flightNumber: booking.airport.flightNumber || '',
-                        arrivalTime: booking.airport.arrivalTime || ''
-                      }
-                    },
-                    options: {
-                      simCard: booking.options.sim || false,
-                      carSeat: {
-                        needed: booking.options.carSeat || false,
-                        type: booking.options.carSeatType || 'regular',
-                        onSitePayment: true
-                      }
-                    },
-                    paymentInfo: {
-                      method: booking.payment.method || 'deposit',
-                      amount: price.finalAmount || 0,
-                      fee: booking.payment.method === 'full' ? (price.fullPaymentFee - price.total) || 0 : 0
-                    },
-                    specialRequests: booking.airport.address || '',
-                    pricing: {
-                      basePrice: price.total || 0,
-                      additionalCharges: 0,
-                      subtotal: price.total || 0
-                    }
-                  };
-                  
-                  // 왕복 여행 추가
-                  if (booking.isRoundTrip) {
-                    bookingData.trips.push({
-                      departure: booking.return.departure,
-                      arrival: booking.return.arrival,
-                      date: booking.returnAirport.pickupDate || new Date().toISOString().split('T')[0],
-                      time: booking.returnAirport.arrivalTime || '12:00',
-                      passengers: booking.returnPassengers,
-                      luggage: booking.returnLuggage
-                    });
+        <BottomCTA 
+          text={`$${price.finalAmount} 결제하기`}
+          onClick={async () => {
+            try {
+              setLoading(true);
+              
+              // 예약 데이터 준비
+              const bookingData = {
+                serviceTypeCode: 'PREMIUM_TAXI',
+                region: booking.region || 'NY',
+                isRoundTrip: booking.isRoundTrip || false,
+                trips: [
+                  {
+                    departure: booking.outbound.departure || '',
+                    arrival: booking.outbound.arrival || '',
+                    date: booking.airport.pickupDate || new Date().toISOString().split('T')[0],
+                    time: booking.airport.arrivalTime || '12:00',
+                    passengers: booking.passengers || 1,
+                    luggage: booking.luggage || 0
                   }
-                  
-                  const response = await api.createBooking(bookingData);
-                  setBooking(prev => ({ ...prev, bookingResult: response }));
-                  setStep('complete');
-                } catch (err) {
-                  setError('예약 처리 중 오류가 발생했습니다.');
-                } finally {
-                  setLoading(false);
+                ],
+                customerInfo: {
+                  name: booking.customer.name || '',
+                  phone: booking.customer.phone || '',
+                  email: booking.payment.billing.email || '',
+                  kakaoId: booking.customer.kakaoId || '',
+                  flightInfo: {
+                    flightNumber: booking.airport.flightNumber || '',
+                    arrivalTime: booking.airport.arrivalTime || ''
+                  }
+                },
+                options: {
+                  simCard: booking.options.sim || false,
+                  carSeat: {
+                    needed: booking.options.carSeat || false,
+                    type: booking.options.carSeatType || 'regular',
+                    onSitePayment: true
+                  }
+                },
+                paymentInfo: {
+                  method: booking.payment.method || 'deposit',
+                  amount: price.finalAmount || 0,
+                  fee: booking.payment.method === 'full' ? (price.fullPaymentFee - price.total) || 0 : 0
+                },
+                specialRequests: booking.airport.address || '',
+                pricing: {
+                  basePrice: price.total || 0,
+                  additionalCharges: 0,
+                  subtotal: price.total || 0
                 }
-              }}
-            >
-              ${price.finalAmount} 결제하기
-            </button>
+              };
+              
+              if (booking.isRoundTrip) {
+                bookingData.trips.push({
+                  departure: booking.return.departure,
+                  arrival: booking.return.arrival,
+                  date: booking.returnAirport.pickupDate || new Date().toISOString().split('T')[0],
+                  time: booking.returnAirport.arrivalTime || '12:00',
+                  passengers: booking.returnPassengers,
+                  luggage: booking.returnLuggage
+                });
+              }
+              
+              const response = await api.createBooking(bookingData);
+              updateBookingField('bookingResult', response);
+              // 스크롤 위치 리셋 후 페이지 전환
+              window.scrollTo(0, 0);
+              updateStep('complete');
+            } catch (err) {
+              setError('예약 처리 중 오류가 발생했습니다.');
+            } finally {
+              setLoading(false);
+            }
+          }}
+          disabled={!booking.payment.billing.name || !booking.payment.billing.email || 
+                   !booking.payment.card.number || !booking.payment.card.expiry || !booking.payment.card.cvc}
+        />
+      </div>
+    );
+  };
+
+  // 예약 완료
+  const CompleteStep = () => {
+    const [showAnimations, setShowAnimations] = useState(false);
+
+    // 완료 페이지 접근 시 스크롤 최상단으로
+    useEffect(() => {
+      if (currentStep === 'complete') {
+        // 즉시 스크롤 위치 리셋
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo(0, 0);
+        setShowAnimations(false);
+      }
+    }, [currentStep]);
+
+    // 스크롤 감지하여 애니메이션 시작
+    useEffect(() => {
+      if (currentStep !== 'complete') return;
+
+      const handleScroll = () => {
+        if (window.scrollY > 50 && !showAnimations) {
+          setShowAnimations(true);
+        }
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }, [currentStep, showAnimations]);
+
+    if (currentStep !== 'complete') return null;
+
+    return (
+      <div className="complete-page">
+        <div className="complete-content">
+          <div className="success-animation">
+            <div className={`success-circle ${showAnimations ? 'pulse' : ''}`}>
+              <CheckCircle size={80} />
+            </div>
+            {showAnimations && (
+              <div className="confetti">
+                {[...Array(30)].map((_, i) => (
+                  <div key={i} className="confetti-piece" style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 3}s`,
+                  backgroundColor: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A'][Math.floor(Math.random() * 5)]
+                  }} />
+                ))}
+              </div>
+            )}
           </div>
+          
+          <h1 className={`complete-title ${showAnimations ? 'slide-up' : ''}`}>예약이 완료되었습니다!</h1>
+          <p className={`complete-subtitle ${showAnimations ? 'slide-up delay-1' : ''}`}>Simply Good Ride with YelloRide</p>
+          
+          <div className={`booking-number-card glass-card ${showAnimations ? 'scale-in delay-2' : ''}`}>
+            <span className="booking-label">예약번호</span>
+            <strong className="booking-value">{booking.bookingResult?.bookingId || 'YR-2025-001'}</strong>
+          </div>
+          
+          {/* 예약 정보 */}
+          <div className={`booking-summary-card glass-card ${showAnimations ? 'slide-up delay-3' : ''}`}>
+            <h3>예약 정보</h3>
+            
+            <div className="summary-content">
+              <div className="summary-row">
+                <span className="row-label">서비스</span>
+                <span className="row-value">택시 예약</span>
+              </div>
+              
+              <div className="summary-row">
+                <span className="row-label">지역</span>
+                <span className="row-value">{booking.region === 'NY' ? '뉴욕' : 'LA'}</span>
+              </div>
+              
+              <div className="summary-row">
+                <span className="row-label">편도 경로</span>
+                <span className="row-value">{booking.outbound.departure} → {booking.outbound.arrival}</span>
+              </div>
+              
+              {booking.isRoundTrip && (
+                <div className="summary-row">
+                  <span className="row-label">왕복 경로</span>
+                  <span className="row-value">{booking.return.departure} → {booking.return.arrival}</span>
+                </div>
+              )}
+              
+              <div className="summary-row highlight">
+                <span className="row-label">결제 금액</span>
+                <span className="row-value">${calculatePrice().finalAmount}</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* 다음 단계 안내 */}
+          <div className={`next-steps-section ${showAnimations ? 'fade-in delay-4' : ''}`}>
+            <h3>다음 단계</h3>
+            
+            <div className="steps-grid">
+              <div className="step-item glass-card">
+                <div className="step-icon">
+                  <span>1</span>
+                </div>
+                <h4>이메일 확인</h4>
+                <p>예약 확인서가 발송되었습니다</p>
+              </div>
+              
+              <div className="step-item glass-card">
+                <div className="step-icon">
+                  <span>2</span>
+                </div>
+                <h4>픽업 준비</h4>
+                <p>기사님이 도착 시 연락드립니다</p>
+              </div>
+              
+              <div className="step-item glass-card">
+                <div className="step-icon">
+                  <span>3</span>
+                </div>
+                <h4>편안한 여행</h4>
+                <p>YelloRide와 함께 즐거운 여행되세요</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* 연락처 */}
+          <div className={`contact-options ${showAnimations ? 'fade-in delay-5' : ''}`}>
+            <h3>도움이 필요하신가요?</h3>
+            
+            <div className="contact-buttons">
+              <a href="https://pf.kakao.com/_xjHlLd" className="contact-button glass-card hover-lift" target="_blank" rel="noopener noreferrer">
+                <MessageCircle size={24} />
+                <span>카카오톡 상담</span>
+              </a>
+              
+              <a href="tel:+19178196464" className="contact-button glass-card hover-lift">
+                <Phone size={24} />
+                <span>전화 문의</span>
+              </a>
+            </div>
+          </div>
+          
+          <button 
+            className={`new-booking-button hover-glow ${showAnimations ? 'slide-up delay-6' : ''}`}
+            onClick={() => {
+              updateStep('hero');
+              setBooking({
+                region: '',
+                serviceType: 'taxi',
+                isRoundTrip: false,
+                outbound: { departure: '', arrival: '', route: null },
+                return: { departure: '', arrival: '', route: null },
+                passengers: 1,
+                luggage: 0,
+                returnPassengers: 1,
+                returnLuggage: 0,
+                customer: { name: '', phone: '', kakaoId: '' },
+                airport: { pickupDate: '', arrivalTime: '', flightNumber: '', address: '' },
+                returnAirport: { pickupDate: '', arrivalTime: '', flightNumber: '', address: '' },
+                options: { sim: false, carSeat: false, carSeatType: 'regular' },
+                payment: { 
+                  method: 'deposit', 
+                  billing: { name: '', company: '', email: '' },
+                  card: { number: '', expiry: '', cvc: '' }
+                }
+              });
+            }}
+          >
+            새 예약하기
+          </button>
         </div>
       </div>
     );
   };
 
-  // 예약 완료 화면
-  const CompleteStep = () => (
-    <div className="completion-container">
-      <div className="complete-header">
-        <div className="success-animation">
-          <CheckCircle size={64} color="#00C851" />
+  // Loading & Error Components
+  const LoadingOverlay = () => (
+    <div className="loading-overlay">
+      <div className="loading-content">
+        <div className="loading-spinner">
+          <div className="spinner-ring"></div>
+          <div className="spinner-ring"></div>
+          <div className="spinner-ring"></div>
         </div>
-        <h1>예약이 완료되었습니다!</h1>
-        <p className="completion-message">YelloRide가 안전하고 편안한 여행을 약속드립니다</p>
-        <div className="booking-number">
-          예약번호: <strong>{booking.bookingResult?.bookingId || 'YR-2025-001'}</strong>
-        </div>
+        <p>처리 중입니다...</p>
       </div>
+    </div>
+  );
 
-      {/* 즉시 지원 안내 */}
-      <div className="immediate-support">
-        <div className="support-header">
-          <span className="support-icon">📞</span>
-          <h3>예약 관련 문의가 있으시면</h3>
-        </div>
-        <div className="contact-options">
-          <div className="contact-card">
-            <MessageCircle size={20} />
-            <div className="contact-details">
-              <strong>카카오톡 상담</strong>
-              <span>옐로라이드 (즉시 응답)</span>
-            </div>
-          </div>
-          <div className="contact-card">
-            <Phone size={20} />
-            <div className="contact-details">
-              <strong>전화 상담</strong>
-              <span>+1 917-819-6464</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="complete-details">
-        <div className="detail-section">
-          <h3>예약 정보</h3>
-          <div className="detail-row">
-            <span>서비스:</span>
-            <span>택시 예약</span>
-          </div>
-          <div className="detail-row">
-            <span>지역:</span>
-            <span>{booking.region === 'NY' ? '뉴욕' : 'LA'}</span>
-          </div>
-          <div className="detail-row">
-            <span>경로:</span>
-            <span>{booking.outbound.departure} → {booking.outbound.arrival}</span>
-          </div>
-          {booking.isRoundTrip && (
-            <div className="detail-row">
-              <span>왕복:</span>
-              <span>{booking.return.departure} → {booking.return.arrival}</span>
-            </div>
-          )}
-          <div className="detail-row">
-            <span>결제 금액:</span>
-            <span>${booking.bookingResult?.data?.paymentInfo?.amount || calculatePrice().finalAmount}</span>
-          </div>
-        </div>
-        
-        <div className="next-steps">
-          <h3>이제 무엇을 해야 하나요?</h3>
-          <div className="steps-timeline">
-            <div className="step-item">
-              <div className="step-number">1</div>
-              <div className="step-content">
-                <strong>이메일 확인</strong>
-                <p>예약 확정서와 중요 안내사항을 이메일로 발송해드렸습니다</p>
-              </div>
-            </div>
-            <div className="step-item">
-              <div className="step-number">2</div>
-              <div className="step-content">
-                <strong>픽업 준비</strong>
-                <p>픽업 당일 기사님이 도착 후 직접 연락드립니다</p>
-              </div>
-            </div>
-            <div className="step-item">
-              <div className="step-number">3</div>
-              <div className="step-content">
-                <strong>편안한 여행</strong>
-                <p>YelloRide와 함께 안전하고 편안한 여행을 즐기세요</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 추가 서비스 안내 */}
-        <div className="additional-services">
-          <h4>이런 서비스도 이용해보세요</h4>
-          <div className="service-suggestions">
-            <div className="suggestion-item">
-              <span>📱</span>
-              <span>미국 유심 서비스</span>
-            </div>
-            <div className="suggestion-item">
-              <span>🚗</span>
-              <span>시간제 차량 대절</span>
-            </div>
-            <div className="suggestion-item">
-              <span>🏫</span>
-              <span>학교 정기 픽업</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <button 
-        className="new-booking-btn"
-        onClick={() => {
-          setStep('landing');
-          setBooking({
-            region: '',
-            serviceType: 'taxi',
-            isRoundTrip: false,
-            outbound: { departure: '', arrival: '', route: null },
-            return: { departure: '', arrival: '', route: null },
-            passengers: 1,
-            luggage: 0,
-            returnPassengers: 1,
-            returnLuggage: 0,
-            customer: { name: '', phone: '', kakaoId: '', email: '' },
-            airport: { pickupDate: '', arrivalTime: '', flightNumber: '', address: '' },
-            returnAirport: { pickupDate: '', arrivalTime: '', flightNumber: '', address: '' },
-            options: { sim: false, carSeat: false, carSeatType: 'regular' },
-            payment: { method: 'deposit', billing: { name: '', company: '', email: '' } }
-          });
-        }}
-      >
-        새 예약하기
+  const ErrorToast = () => (
+    <div className={`error-toast ${error ? 'show' : ''}`}>
+      <AlertCircle size={20} />
+      <span>{error}</span>
+      <button onClick={() => setError(null)} className="toast-close">
+        <X size={18} />
       </button>
     </div>
   );
 
-  // 현재 단계에 따른 컴포넌트 렌더링
-  const renderCurrentStep = () => {
-    return (
-      <div className="app-container">
-        <LandingPage />
-        <RegionStep />
-        <RouteStep />
-        {step === 'passengers' && <PassengersStep />}
-        {step === 'customer' && <CustomerStep />}
-        {step === 'airport' && <AirportStep />}
-        {step === 'options' && <OptionsStep />}
-        {step === 'payment' && <PaymentStep />}
-        {step === 'complete' && <CompleteStep />}
-      </div>
-    );
-  };
-
+  // Main Render
   return (
-    <div className="app simple">
-      {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
-          <p>처리 중...</p>
-        </div>
-      )}
+    <div className="yelloride-app">
+      {loading && <LoadingOverlay />}
+      {error && <ErrorToast />}
       
-      {error && (
-        <div className="error-banner">
-          <AlertCircle size={16} />
-          {error}
-          <button onClick={() => setError(null)}>×</button>
-        </div>
-      )}
-      
-      <main className="main-content">
-        <div className="responsive-container">
-          {renderCurrentStep()}
-          {/* 가격 표시는 경로가 선택되고 승객/짐 정보가 관련있는 단계에서만 표시 */}
-          {(step === 'passengers' || step === 'options') && booking.outbound.route && (
-            <div className="bottom-section">
-              <div className="price-summary">
-                <span className="price-label">예상 요금</span>
-                <span className="price-amount">${calculatePrice().total}</span>
-              </div>
-            </div>
-          )}
-          {step !== 'landing' && <AppFooter />}
-        </div>
+      <main className="app-main">
+        <HeroPage />
+        <MainPage />
+        <ServiceStep />
+        <RouteStep />
+        <PassengersStep />
+        <CustomerStep />
+        <AirportStep />
+        <OptionsStep />
+        <PaymentStep />
+        <CompleteStep />
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
-  bookingId: {
+  booking_number: {
     type: String,
     required: true,
     unique: true
@@ -140,8 +140,8 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // 인덱스
-bookingSchema.index({ bookingId: 1 });
-bookingSchema.index({ 'customer.phone': 1 });
+bookingSchema.index({ booking_number: 1 });
+bookingSchema.index({ 'customerInfo.phone': 1 });
 bookingSchema.index({ createdAt: -1 });
 
 const Booking = mongoose.model('Booking', bookingSchema, 'bookings');
